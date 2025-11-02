@@ -24,14 +24,13 @@ export interface Post {
   comments: Comment[];
   timestamp: string;
 }
-
+// FIX: Add Notification and NotificationType types.
 export type NotificationType = 'like' | 'comment' | 'follow';
 
 export interface Notification {
   id: number;
   type: NotificationType;
   actor: User;
-  post?: Post;
   read: boolean;
   timestamp: string;
 }
