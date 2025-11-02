@@ -5,6 +5,7 @@ import ProfilePage from './components/ProfilePage';
 import EditProfileModal from './components/EditProfileModal';
 import SearchResults from './components/SearchResults';
 import Notifications from './components/Notifications';
+import Sidebar from './components/Sidebar';
 import { Post, User, Notification, NotificationType } from './types';
 import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon } from './components/Icons';
 
@@ -169,7 +170,8 @@ const App: React.FC = () => {
     const oldUser = users.currentUser;
     setUsers(prevUsers => ({ ...prevUsers, currentUser: updatedUser }));
     // FIX: Add null check for oldUser to prevent potential runtime errors.
-    if (oldUser && viewedProfileUser && viewedProfileUser.name === oldUser.name) {
+    // FIX: Explicitly cast `oldUser` to `User` to resolve incorrect type inference.
+    if (oldUser && viewedProfileUser && viewedProfileUser.name === (oldUser as User).name) {
       setViewedProfileUser(updatedUser);
     }
     setPosts(prevPosts => prevPosts.map(post => {
@@ -214,9 +216,11 @@ const App: React.FC = () => {
         if (isFollowing) {
             return prev.filter(name => name !== userName);
         } else {
-            const followedUser = Object.values(users).find(u => u.name === userName);
+            // FIX: Explicitly cast values of users to User[] to fix type inference issue.
+            const followedUser = (Object.values(users) as User[]).find(u => u.name === userName);
+            // FIX: The containing if statement is line 248. The errors are from `Object.values` and `users.currentUser`.
             if(users.currentUser && followedUser) {
-                addNotification('follow', users.currentUser);
+                addNotification('follow', users.currentUser as User);
             }
             return [...prev, userName];
         }
@@ -303,7 +307,7 @@ const App: React.FC = () => {
   return (
     <div className="bg-slate-100 min-h-screen font-sans text-slate-800">
       <header className="bg-white shadow-md sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto py-3 px-4 flex justify-between items-center gap-4">
+        <div className="max-w-6xl mx-auto py-3 px-4 flex justify-between items-center gap-4">
           <h1 className="text-2xl font-bold text-indigo-600 hidden sm:block shrink-0">منشورات</h1>
           <div className="relative flex-grow max-w-xl mx-auto">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -341,9 +345,20 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
-      <main className="max-w-2xl mx-auto p-4 pt-6">
-        {renderMainContent()}
-      </main>
+      <div className="max-w-6xl mx-auto p-4 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <main className="lg:col-span-2">
+            {renderMainContent()}
+        </main>
+        <aside className="hidden lg:block sticky top-24 h-fit">
+            <Sidebar 
+                currentUser={users.currentUser}
+                allUsers={Object.values(users)}
+                following={following}
+                onViewProfile={handleViewProfile}
+                onFollowToggle={handleFollowToggle}
+            />
+        </aside>
+      </div>
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
