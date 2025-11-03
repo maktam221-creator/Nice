@@ -36,10 +36,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initialUsersData: Record<string, User> = {
-      currentUser: { name: 'أنت', avatarUrl: 'https://picsum.photos/seed/you/100/100', bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.', country: { value: 'السعودية', isPublic: true }, gender: { value: 'أنثى', isPublic: true } },
-      sara: { name: 'سارة', avatarUrl: 'https://picsum.photos/seed/sara/100/100' },
-      ahmed: { name: 'أحمد', avatarUrl: 'https://picsum.photos/seed/ahmed/100/100' },
-      fatima: { name: 'فاطمة', avatarUrl: 'https://picsum.photos/seed/fatima/100/100' },
+      currentUser: { name: 'أنت', avatarUrl: 'https://picsum.photos/seed/you/100/100', bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.', country: { value: 'السعودية', isPublic: true }, gender: { value: 'أنثى', isPublic: true }, isOnline: true },
+      sara: { name: 'سارة', avatarUrl: 'https://picsum.photos/seed/sara/100/100', isOnline: true },
+      ahmed: { name: 'أحمد', avatarUrl: 'https://picsum.photos/seed/ahmed/100/100', isOnline: false },
+      fatima: { name: 'فاطمة', avatarUrl: 'https://picsum.photos/seed/fatima/100/100', isOnline: true },
     };
     setUsers(initialUsersData);
 

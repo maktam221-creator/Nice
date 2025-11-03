@@ -5,6 +5,7 @@ export interface User {
   gender?: { value: string; isPublic: boolean };
   bio?: string;
   country?: { value:string; isPublic: boolean };
+  isOnline?: boolean;
 }
 
 export interface Comment {

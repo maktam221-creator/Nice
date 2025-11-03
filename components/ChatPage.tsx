@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Message } from '../types';
-import { PaperAirplaneIcon, LockClosedIcon, LockOpenIcon } from './Icons';
+import { PaperAirplaneIcon, LockClosedIcon, LockOpenIcon, XIcon } from './Icons';
 
 interface ChatPageProps {
   currentUser: User;
@@ -81,9 +81,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const isSelectedChatLocked = selectedUserKey ? lockedChats.includes(selectedUserKey) : false;
 
   return (
-    <div className="bg-white rounded-lg shadow-md h-[calc(100vh-160px)] flex flex-col md:flex-row">
+    <div className="bg-white rounded-lg shadow-md h-[calc(100vh-160px)] flex flex-col md:flex-row overflow-hidden">
       {/* Conversation List */}
-      <div className="w-full md:w-1/3 border-l rtl:border-l-0 rtl:border-r border-slate-200 flex flex-col">
+      <div className={`w-full md:w-1/3 border-l rtl:border-l-0 rtl:border-r border-slate-200 flex-col ${selectedUser ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b">
           <h2 className="text-xl font-bold text-slate-800">الدردشات</h2>
         </div>
@@ -101,7 +101,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   }`}
                 >
                   <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                    <img src={user.avatarUrl} alt={user.name} className="w-12 h-12 rounded-full" />
+                    <div className="relative">
+                        <img src={user.avatarUrl} alt={user.name} className="w-12 h-12 rounded-full" />
+                        {user.isOnline && (
+                           <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-white"></span>
+                        )}
+                    </div>
                     <div>
                       <p className="font-semibold text-slate-800">{user.name}</p>
                     </div>
@@ -119,24 +124,38 @@ const ChatPage: React.FC<ChatPageProps> = ({
       </div>
 
       {/* Chat Window */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex-col ${selectedUser ? 'flex' : 'hidden md:flex'}`}>
         {selectedUser ? (
           <>
             <div className="p-4 border-b flex items-center justify-between shadow-sm">
               <button onClick={() => onViewProfile(selectedUser)} className="flex items-center space-x-3 rtl:space-x-reverse group">
-                  <img src={selectedUser.avatarUrl} alt={selectedUser.name} className="w-10 h-10 rounded-full" />
+                  <div className="relative">
+                      <img src={selectedUser.avatarUrl} alt={selectedUser.name} className="w-10 h-10 rounded-full" />
+                      {selectedUser.isOnline && (
+                         <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white"></span>
+                      )}
+                  </div>
                   <span className="font-bold text-slate-800 group-hover:underline">{selectedUser.name}</span>
               </button>
-              <button 
-                onClick={() => handleToggleLock(selectedUser)}
-                className="p-2 rounded-full hover:bg-slate-100 transition-colors"
-                aria-label={isSelectedChatLocked ? 'فتح قفل الدردشة' : 'قفل الدردشة'}
-              >
-                {isSelectedChatLocked 
-                    ? <LockClosedIcon className="w-6 h-6 text-slate-500" /> 
-                    : <LockOpenIcon className="w-6 h-6 text-slate-500" />
-                }
-              </button>
+              <div className="flex items-center space-x-1 rtl:space-x-reverse">
+                <button 
+                  onClick={() => handleToggleLock(selectedUser)}
+                  className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label={isSelectedChatLocked ? 'فتح قفل الدردشة' : 'قفل الدردشة'}
+                >
+                  {isSelectedChatLocked 
+                      ? <LockClosedIcon className="w-6 h-6 text-slate-500" /> 
+                      : <LockOpenIcon className="w-6 h-6 text-slate-500" />
+                  }
+                </button>
+                <button 
+                    onClick={() => setSelectedUser(null)} 
+                    className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                    aria-label="إغلاق المحادثة"
+                >
+                    <XIcon className="w-6 h-6 text-slate-500" />
+                </button>
+              </div>
             </div>
             {isSelectedChatLocked ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 bg-slate-50 p-4">
@@ -192,7 +211,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-center text-slate-500 bg-slate-50">
+          <div className="flex-1 md:flex items-center justify-center text-center text-slate-500 bg-slate-50 hidden">
             <div>
               <h3 className="text-xl font-semibold">اختر محادثة</h3>
               <p>ابدأ الدردشة مع متابعيك.</p>
