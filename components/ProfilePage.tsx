@@ -1,9 +1,12 @@
+
+
 import React, { useState, useRef } from 'react';
 import { User, Post } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
+import { uploadImage } from '../services/cloudinaryService';
 
 interface ProfilePageProps {
   user: User;
@@ -25,20 +28,24 @@ interface ProfilePageProps {
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.result) {
-          onUpdateAvatar(reader.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+      setIsUploadingAvatar(true);
+      try {
+        const newAvatarUrl = await uploadImage(file);
+        onUpdateAvatar(newAvatarUrl);
+      } catch (error) {
+        console.error("Failed to upload avatar:", error);
+        alert('حدث خطأ أثناء تحميل الصورة الرمزية. يرجى المحاولة مرة أخرى.');
+      } finally {
+        setIsUploadingAvatar(false);
+      }
     }
   };
 
@@ -50,12 +57,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex items-center space-x-6 rtl:space-x-reverse">
                 <div className="relative flex-shrink-0">
-                    <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-slate-200" />
+                    <img src={user.avatarUrl} alt={user.name} className={`w-24 h-24 rounded-full border-4 border-slate-200 transition-opacity ${isUploadingAvatar ? 'opacity-50' : ''}`} />
+                    {isUploadingAvatar && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 rounded-full">
+                            <div className="w-8 h-8 border-4 border-t-transparent border-white rounded-full animate-spin"></div>
+                        </div>
+                    )}
                     {isCurrentUserProfile && (
                         <>
                             <button
                                 onClick={triggerFileSelect}
-                                className="absolute bottom-0 right-0 bg-slate-700 text-white rounded-full p-2 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                disabled={isUploadingAvatar}
+                                className="absolute bottom-0 right-0 bg-slate-700 text-white rounded-full p-2 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 aria-label="تغيير صورة الملف الشخصي"
                             >
                                 <CameraIcon className="w-5 h-5" />
@@ -66,6 +79,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
                                 onChange={handleAvatarChange}
                                 className="hidden"
                                 accept="image/*"
+                                disabled={isUploadingAvatar}
                             />
                         </>
                     )}

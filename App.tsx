@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
 import ProfilePage from './components/ProfilePage';
@@ -8,8 +8,12 @@ import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
 import Notifications from './components/Notifications';
 import BottomNavBar from './components/BottomNavBar';
-import ChatPage from './components/ChatPage'; // Import ChatPage
-import { Post, User, Notification, Message } from './types';
+import ChatPage from './components/ChatPage';
+import StoriesTray from './components/StoriesTray';
+import StoryCreatorModal from './components/StoryCreatorModal';
+import StoryViewer from './components/StoryViewer';
+import { Post, User, Notification, Message, Story } from './types';
+import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories } from './data';
 import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon } from './components/Icons';
 
 type ProfileView = { viewer: User; timestamp: string };
@@ -18,6 +22,7 @@ type Page = 'home' | 'profile' | 'chat';
 const App: React.FC = () => {
   const [users, setUsers] = useState<Record<string, User>>({});
   const [posts, setPosts] = useState<Post[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,42 +34,21 @@ const App: React.FC = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
+  const [isStoryCreatorOpen, setIsStoryCreatorOpen] = useState(false);
+  const [viewingStoryUserKey, setViewingStoryUserKey] = useState<string | null>(null);
+
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notificationButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const initialUsersData: Record<string, User> = {
-      currentUser: { name: 'أنت', avatarUrl: 'https://picsum.photos/seed/you/100/100', bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.', country: { value: 'السعودية', isPublic: true }, gender: { value: 'أنثى', isPublic: true }, isOnline: true },
-      sara: { name: 'سارة', avatarUrl: 'https://picsum.photos/seed/sara/100/100', isOnline: true },
-      ahmed: { name: 'أحمد', avatarUrl: 'https://picsum.photos/seed/ahmed/100/100', isOnline: false },
-      fatima: { name: 'فاطمة', avatarUrl: 'https://picsum.photos/seed/fatima/100/100', isOnline: true },
-    };
-    setUsers(initialUsersData);
-
-    const initialPosts: Post[] = [
-      { id: 1, author: initialUsersData.sara, text: 'يوم جميل في الحديقة اليوم! الطقس كان مثالياً. ☀️', imageUrl: 'https://picsum.photos/seed/garden/600/400', likes: 15, shares: 7, isLiked: false, timestamp: 'قبل 5 دقائق', comments: [ { id: 1, author: initialUsersData.ahmed, text: 'صور رائعة!' }, { id: 2, author: initialUsersData.fatima, text: 'أتمنى لو كنت هناك.' }, ], },
-      { id: 2, author: initialUsersData.ahmed, text: 'أنهيت للتو قراءة كتاب رائع. أوصي به بشدة لكل محبي الخيال العلمي.', likes: 8, shares: 2, isLiked: true, timestamp: 'قبل ساعة', comments: [], },
-      { id: 3, author: initialUsersData.currentUser, text: 'تجربة وصفة جديدة للعشاء الليلة. أتمنى أن تنجح!', likes: 2, shares: 1, isLiked: false, timestamp: 'قبل 3 ساعات', comments: [], },
-    ];
+    setUsers(initialUsers);
     setPosts(initialPosts);
-    
-    setProfileViews({ [initialUsersData.currentUser.name]: [ { viewer: initialUsersData.sara, timestamp: 'قبل ساعتين' }, { viewer: initialUsersData.ahmed, timestamp: 'قبل يوم' } ] });
-
-    const initialNotifications: Notification[] = [
-        { id: 1, type: 'follow', actor: initialUsersData.sara, read: false, timestamp: 'قبل دقيقة' },
-        { id: 2, type: 'like', actor: initialUsersData.ahmed, read: false, timestamp: 'قبل 5 دقائق' },
-        { id: 3, type: 'comment', actor: initialUsersData.fatima, read: true, timestamp: 'قبل ساعة' },
-    ];
+    setProfileViews(initialProfileViews);
     setNotifications(initialNotifications);
-
-    const initialMessages: Message[] = [
-        { id: 1, senderKey: 'sara', receiverKey: 'currentUser', text: 'مرحباً! كيف حالك؟', timestamp: 'قبل 10 دقائق' },
-        { id: 2, senderKey: 'currentUser', receiverKey: 'sara', text: 'أهلاً سارة! أنا بخير، شكراً لك. ماذا عنك؟', timestamp: 'قبل 8 دقائق' },
-        { id: 3, senderKey: 'sara', receiverKey: 'currentUser', text: 'بخير أيضاً. هل رأيت المنشور الجديد؟', timestamp: 'قبل 5 دقائق' },
-    ];
     setMessages(initialMessages);
+    setStories(initialStories);
   }, []);
   
   useEffect(() => {
@@ -206,6 +190,32 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddStory = (storyData: { type: 'image' | 'text'; content: string; caption?: string; backgroundColor?: string; }) => {
+    const newStory: Story = {
+      id: Date.now(),
+      authorKey: 'currentUser',
+      timestamp: new Date(),
+      viewedBy: [],
+      ...storyData
+    };
+    setStories(prev => [newStory, ...prev]);
+  };
+
+  const handleViewStories = (userName: string) => {
+      const userKey = Object.keys(users).find(key => users[key].name === userName)
+      if (userKey) {
+          setViewingStoryUserKey(userKey);
+      }
+  };
+
+  const handleMarkStoryAsViewed = (storyId: number) => {
+      setStories(prevStories => prevStories.map(story => {
+          if (story.id === storyId && !story.viewedBy.includes('currentUser')) {
+              return { ...story, viewedBy: [...story.viewedBy, 'currentUser'] };
+          }
+          return story;
+      }));
+  };
 
   const userPosts = posts.filter(post => post.author.name === viewedProfileUser?.name);
   const lowercasedQuery = searchQuery.trim().toLowerCase();
@@ -213,6 +223,57 @@ const App: React.FC = () => {
   const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== users.currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
   const unreadCount = notifications.filter(n => !n.read).length;
   const followingUsers = following.map(key => users[key]).filter(Boolean);
+
+  const activeStories = useMemo(() => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return stories.filter(story => story.timestamp > twentyFourHoursAgo);
+  }, [stories]);
+
+  const storyGroups = useMemo(() => {
+      const groups: Record<string, { user: User; stories: Story[]; hasUnviewed: boolean }> = {};
+      
+      for (const story of activeStories) {
+          if (story.authorKey === 'currentUser') continue;
+
+          if (!groups[story.authorKey]) {
+              groups[story.authorKey] = {
+                  user: users[story.authorKey],
+                  stories: [],
+                  hasUnviewed: false,
+              };
+          }
+          groups[story.authorKey].stories.push(story);
+          if (!story.viewedBy.includes('currentUser')) {
+              groups[story.authorKey].hasUnviewed = true;
+          }
+      }
+      return Object.values(groups).filter(g => g.user);
+  }, [activeStories, users]);
+  
+  const viewingUserStories = viewingStoryUserKey ? activeStories.filter(s => s.authorKey === viewingStoryUserKey) : [];
+
+  const handleStoryNavigation = (direction: 'next' | 'prev') => {
+      const userKeysWithStories = storyGroups.map(g => Object.keys(users).find(key => users[key].name === g.user.name)).filter(Boolean) as string[];
+      if (!viewingStoryUserKey) return;
+      const currentIndex = userKeysWithStories.indexOf(viewingStoryUserKey);
+      
+      let nextIndex;
+      if (direction === 'next') {
+          nextIndex = currentIndex + 1;
+          if (nextIndex >= userKeysWithStories.length) {
+              setViewingStoryUserKey(null); // Close viewer
+              return;
+          }
+      } else {
+          nextIndex = currentIndex - 1;
+          if (nextIndex < 0) {
+              setViewingStoryUserKey(null); // Close viewer
+              return;
+          }
+      }
+      setViewingStoryUserKey(userKeysWithStories[nextIndex]);
+  };
+
 
   if (!users.currentUser) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -234,6 +295,12 @@ const App: React.FC = () => {
         default:
             return (
                 <>
+                    <StoriesTray
+                      storyGroups={storyGroups}
+                      currentUser={users.currentUser}
+                      onViewStories={(userName) => handleViewStories(userName)}
+                      onAddStory={() => setIsStoryCreatorOpen(true)}
+                    />
                     <CreatePost onAddPost={handleAddPost} currentUser={users.currentUser} />
                     <div className="mt-8">
                       {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={users.currentUser} onViewProfile={handleViewProfile} /> ))}
@@ -300,6 +367,21 @@ const App: React.FC = () => {
       </div>
       <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={users.currentUser} onSave={handleUpdateProfile} />
       <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+       <StoryCreatorModal 
+        isOpen={isStoryCreatorOpen}
+        onClose={() => setIsStoryCreatorOpen(false)}
+        onAddStory={handleAddStory}
+      />
+      {viewingStoryUserKey && viewingUserStories.length > 0 && (
+        <StoryViewer
+          user={users[viewingStoryUserKey]}
+          stories={viewingUserStories}
+          onClose={() => setViewingStoryUserKey(null)}
+          onNextUser={() => handleStoryNavigation('next')}
+          onPrevUser={() => handleStoryNavigation('prev')}
+          onMarkAsViewed={handleMarkStoryAsViewed}
+        />
+      )}
       <BottomNavBar
         currentPage={currentPage}
         searchQuery={searchQuery}

@@ -42,3 +42,14 @@ export interface Message {
   text: string;
   timestamp: string;
 }
+
+export interface Story {
+  id: number;
+  authorKey: string;
+  type: 'image' | 'text';
+  content: string; // URL for image, text for text story
+  caption?: string; // For image stories
+  backgroundColor?: string; // For text stories
+  timestamp: Date;
+  viewedBy: string[]; // array of user keys who viewed it
+}

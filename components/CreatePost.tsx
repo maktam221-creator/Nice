@@ -1,7 +1,9 @@
 
+
 import React, { useState, useRef } from 'react';
 import { enhancePost } from '../services/geminiService';
 import { SparklesIcon, PhotoIcon, XCircleIcon } from './Icons';
+import { uploadImage } from '../services/cloudinaryService';
 
 interface CreatePostProps {
   onAddPost: (text: string, imageUrl?: string) => void;
@@ -12,6 +14,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
   const [postText, setPostText] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [image, setImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,14 +42,20 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      setImage(null);
+      try {
+        const imageUrl = await uploadImage(file);
+        setImage(imageUrl);
+      } catch (error) {
+        console.error("Failed to upload image:", error);
+        alert('حدث خطأ أثناء تحميل الصورة. يرجى المحاولة مرة أخرى.');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
   
@@ -64,7 +73,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
             rows={3}
             placeholder="بماذا تفكر؟"
           />
-          {image && (
+          {isUploading && (
+            <div className="mt-2 text-center text-slate-500 py-4">
+                <div className="w-8 h-8 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin mx-auto"></div>
+                <p className="mt-2 text-sm">جاري تحميل الصورة...</p>
+            </div>
+          )}
+          {image && !isUploading && (
             <div className="mt-2 relative">
               <img src={image} alt="معاينة" className="rounded-lg w-full max-h-60 object-cover" />
               <button
@@ -87,7 +102,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
                 <button
                     type="button"
                     onClick={triggerFileSelect}
-                    className="flex items-center justify-center w-10 h-10 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"
+                    disabled={isUploading}
+                    className="flex items-center justify-center w-10 h-10 text-slate-500 hover:bg-slate-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label="إضافة صورة"
                 >
                     <PhotoIcon className="w-6 h-6 text-green-500" />
@@ -108,7 +124,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
             </div>
             <button
               type="submit"
-              disabled={!postText.trim() && !image}
+              disabled={(!postText.trim() && !image) || isUploading}
               className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
             >
               نشر
@@ -120,6 +136,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
             onChange={handleImageChange}
             className="hidden"
             accept="image/*"
+            disabled={isUploading}
           />
         </form>
       </div>

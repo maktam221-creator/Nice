@@ -16,12 +16,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
   const [showComments, setShowComments] = useState(false);
 
   const handleShare = async () => {
+    // Construct a shareable URL from the origin to ensure it's always valid.
+    const shareUrl = `${window.location.origin}/#post/${post.id}`;
     if (navigator.share) {
       try {
         await navigator.share({
           title: `منشور من ${post.author.name}`,
           text: post.text,
-          url: window.location.href, // You can replace this with a direct link to the post if available
+          url: shareUrl,
         });
         onShare(post.id);
       } catch (error) {
