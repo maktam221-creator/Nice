@@ -14,6 +14,8 @@ import StoryCreatorModal from './components/StoryCreatorModal';
 import StoryViewer from './components/StoryViewer';
 import ShortsPage from './components/ShortsPage';
 import CreateReelModal from './components/CreateReelModal';
+import AuthPage from './components/AuthPage';
+import { useAuth } from './contexts/AuthContext';
 import { Post, User, Notification, Message, Story, Reel } from './types';
 import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories, initialReels } from './data';
 import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from './components/Icons';
@@ -22,6 +24,9 @@ type ProfileView = { viewer: User; timestamp: string };
 type Page = 'home' | 'profile' | 'chat' | 'shorts';
 
 const App: React.FC = () => {
+  const { currentUser: authUser, loading: authLoading, logout } = useAuth();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
   const [users, setUsers] = useState<Record<string, User>>({});
   const [posts, setPosts] = useState<Post[]>([]);
   const [reels, setReels] = useState<Reel[]>([]);
@@ -55,6 +60,24 @@ const App: React.FC = () => {
     setMessages(initialMessages);
     setStories(initialStories);
   }, []);
+
+  useEffect(() => {
+    if (authUser) {
+      // In a real app, you would fetch the user's profile from Firestore here.
+      // For now, we'll create a profile based on the auth user's info.
+      const userProfile: User = {
+        name: authUser.displayName || authUser.email?.split('@')[0] || 'مستخدم جديد',
+        avatarUrl: authUser.photoURL || `https://picsum.photos/seed/${authUser.uid}/100/100`,
+        bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.',
+        country: { value: 'السعودية', isPublic: true },
+        gender: { value: 'أفضل عدم القول', isPublic: true },
+        isOnline: true,
+      };
+      setCurrentUser(userProfile);
+    } else {
+      setCurrentUser(null);
+    }
+  }, [authUser]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -76,8 +99,8 @@ const App: React.FC = () => {
 
 
   const handleAddPost = (text: string, imageUrl?: string) => {
-    if (!users.currentUser) return;
-    const newPost: Post = { id: Date.now(), author: users.currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, timestamp: 'الآن', comments: [], };
+    if (!currentUser) return;
+    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, timestamp: 'الآن', comments: [], };
     setPosts([newPost, ...posts]);
   };
 
@@ -90,8 +113,8 @@ const App: React.FC = () => {
   };
 
   const handleAddComment = (postId: number, text: string) => {
-    if (!users.currentUser) return;
-    setPosts( posts.map((post) => { if (post.id === postId) { const newComment = { id: Date.now(), author: users.currentUser, text, }; return { ...post, comments: [...post.comments, newComment] }; } return post; }) );
+    if (!currentUser) return;
+    setPosts( posts.map((post) => { if (post.id === postId) { const newComment = { id: Date.now(), author: currentUser, text, }; return { ...post, comments: [...post.comments, newComment] }; } return post; }) );
   };
 
   const handleLikeReel = (reelId: number) => {
@@ -103,15 +126,15 @@ const App: React.FC = () => {
   };
 
   const handleAddReelComment = (reelId: number, text: string) => {
-    if (!users.currentUser) return;
-    setReels( reels.map((reel) => { if (reel.id === reelId) { const newComment = { id: Date.now(), author: users.currentUser, text, }; return { ...reel, comments: [...reel.comments, newComment] }; } return reel; }) );
+    if (!currentUser) return;
+    setReels( reels.map((reel) => { if (reel.id === reelId) { const newComment = { id: Date.now(), author: currentUser, text, }; return { ...reel, comments: [...reel.comments, newComment] }; } return reel; }) );
   };
 
   const handleAddReel = (videoUrl: string, caption: string) => {
-    if (!users.currentUser) return;
+    if (!currentUser) return;
     const newReel: Reel = {
       id: Date.now(),
-      author: users.currentUser,
+      author: currentUser,
       videoUrl,
       caption,
       likes: 0,
@@ -126,22 +149,24 @@ const App: React.FC = () => {
 
 
   const handleUpdateProfile = (updatedUser: User) => {
-    const oldUser = users.currentUser;
+    const oldUser = currentUser;
     if (!oldUser) return;
-    setUsers(prevUsers => ({ ...prevUsers, currentUser: updatedUser }));
+    
+    setCurrentUser(updatedUser);
+
     if (viewedProfileUser && viewedProfileUser.name === oldUser.name) { setViewedProfileUser(updatedUser); }
     setPosts(prevPosts => prevPosts.map(post => { const updatedPost = { ...post }; if (post.author.name === oldUser.name) { updatedPost.author = updatedUser; } updatedPost.comments = post.comments.map(comment => { if (comment.author.name === oldUser.name) { return { ...comment, author: updatedUser }; } return comment; }); return updatedPost; }));
   };
 
   const handleUpdateAvatar = (newAvatarUrl: string) => {
-    if (!users.currentUser) return;
-    const updatedUser = { ...users.currentUser, avatarUrl: newAvatarUrl };
+    if (!currentUser) return;
+    const updatedUser = { ...currentUser, avatarUrl: newAvatarUrl };
     handleUpdateProfile(updatedUser);
   };
 
   const handleViewProfile = (user: User) => {
-    if (users.currentUser && user.name !== users.currentUser.name) {
-        const viewer = users.currentUser;
+    if (currentUser && user.name !== currentUser.name) {
+        const viewer = currentUser;
         setProfileViews(prev => {
             const viewsForUser = prev[user.name] || [];
             if (viewsForUser.length > 0 && viewsForUser[viewsForUser.length - 1].viewer.name === viewer.name) { return prev; }
@@ -156,8 +181,8 @@ const App: React.FC = () => {
   };
 
   const handleGoToMyProfile = () => {
-    if (!users.currentUser) return;
-    setViewedProfileUser(users.currentUser);
+    if (!currentUser) return;
+    setViewedProfileUser(currentUser);
     setCurrentPage('profile');
     setSearchQuery('');
   };
@@ -182,21 +207,21 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = (recipient: User, text: string) => {
-    if (!users.currentUser) return;
+    if (!currentUser) return;
     
     const recipientKey = Object.keys(users).find(key => users[key].name === recipient.name);
     if (!recipientKey) return;
 
+    // This is a simplified message system. In a real app, 'currentUser' would be a UID.
     const newMessage: Message = {
       id: Date.now(),
-      senderKey: 'currentUser',
+      senderKey: 'currentUser', // Placeholder key for the current user
       receiverKey: recipientKey,
       text,
       timestamp: 'الآن',
     };
     setMessages(prev => [...prev, newMessage]);
 
-    // Simulate a reply and create a notification
     setTimeout(() => {
         const replyMessage: Message = {
             id: Date.now() + 1,
@@ -235,7 +260,7 @@ const App: React.FC = () => {
   const handleAddStory = (storyData: { type: 'image' | 'text'; content: string; caption?: string; backgroundColor?: string; }) => {
     const newStory: Story = {
       id: Date.now(),
-      authorKey: 'currentUser',
+      authorKey: 'currentUser', // Placeholder
       timestamp: new Date(),
       viewedBy: [],
       ...storyData
@@ -252,7 +277,7 @@ const App: React.FC = () => {
 
   const handleMarkStoryAsViewed = (storyId: number) => {
       setStories(prevStories => prevStories.map(story => {
-          if (story.id === storyId && !story.viewedBy.includes('currentUser')) {
+          if (story.id === storyId && !story.viewedBy.includes('currentUser')) { // Placeholder
               return { ...story, viewedBy: [...story.viewedBy, 'currentUser'] };
           }
           return story;
@@ -263,7 +288,7 @@ const App: React.FC = () => {
   const userReels = reels.filter(reel => reel.author.name === viewedProfileUser?.name);
   const lowercasedQuery = searchQuery.trim().toLowerCase();
   const filteredPosts = searchQuery ? posts.filter(post => post.text.toLowerCase().includes(lowercasedQuery) || post.author.name.toLowerCase().includes(lowercasedQuery)) : [];
-  const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== users.currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
+  const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
   const unreadCount = notifications.filter(n => !n.read).length;
   const followingUsers = following.map(key => users[key]).filter(Boolean);
 
@@ -286,7 +311,7 @@ const App: React.FC = () => {
               };
           }
           groups[story.authorKey].stories.push(story);
-          if (!story.viewedBy.includes('currentUser')) {
+          if (!story.viewedBy.includes('currentUser')) { // Placeholder
               groups[story.authorKey].hasUnviewed = true;
           }
       }
@@ -318,37 +343,49 @@ const App: React.FC = () => {
   };
 
 
-  if (!users.currentUser) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (authLoading) {
+    return (
+        <div className="flex justify-center items-center h-screen bg-slate-100">
+            <div className="w-16 h-16 border-8 border-t-transparent border-indigo-600 rounded-full animate-spin"></div>
+        </div>
+    );
+  }
+  
+  if (!authUser) {
+      return <AuthPage />;
+  }
+
+  if (!currentUser) {
+    return <div className="flex justify-center items-center h-screen">Loading Profile...</div>;
   }
 
   const renderMainContent = () => {
     if (searchQuery) {
-      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={users.currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
+      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
     }
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
             }
             return null;
         case 'chat':
-            return <ChatPage currentUser={users.currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} onViewProfile={handleViewProfile} />;
+            return <ChatPage currentUser={currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} onViewProfile={handleViewProfile} />;
         case 'shorts':
-            return <ShortsPage reels={reels} currentUser={users.currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsReelCreatorOpen(true)} onViewProfile={handleViewProfile} />;
+            return <ShortsPage reels={reels} currentUser={currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsReelCreatorOpen(true)} onViewProfile={handleViewProfile} />;
         case 'home':
         default:
             return (
                 <>
                     <StoriesTray
                       storyGroups={storyGroups}
-                      currentUser={users.currentUser}
+                      currentUser={currentUser}
                       onViewStories={(userName) => handleViewStories(userName)}
                       onAddStory={() => setIsStoryCreatorOpen(true)}
                     />
-                    <CreatePost onAddPost={handleAddPost} currentUser={users.currentUser} />
+                    <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
                     <div className="mt-8">
-                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={users.currentUser} onViewProfile={handleViewProfile} /> ))}
+                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={currentUser} onViewProfile={handleViewProfile} /> ))}
                     </div>
                 </>
             );
@@ -390,7 +427,7 @@ const App: React.FC = () => {
                   <ChatBubbleLeftRightIcon className={`w-7 h-7 ${currentPage === 'chat' ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
                 <button onClick={handleGoToMyProfile} aria-label="الملف الشخصي" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.name === users.currentUser.name ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.name === currentUser.name ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
             </div>
             <div className="hidden lg:block">
@@ -410,11 +447,11 @@ const App: React.FC = () => {
             {renderMainContent()}
         </main>
         <aside className="hidden lg:block sticky top-24 h-fit">
-            <Sidebar currentUser={users.currentUser} allUsers={Object.values(users) as User[]} following={following} onViewProfile={handleViewProfile} onFollowToggle={handleFollowToggle} />
+            <Sidebar currentUser={currentUser} allUsers={Object.values(users) as User[]} following={following} onViewProfile={handleViewProfile} onFollowToggle={handleFollowToggle} />
         </aside>
       </div>
-      <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={users.currentUser} onSave={handleUpdateProfile} />
-      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+      <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={currentUser} onSave={handleUpdateProfile} />
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={logout} />
        <StoryCreatorModal 
         isOpen={isStoryCreatorOpen}
         onClose={() => setIsStoryCreatorOpen(false)}
@@ -439,7 +476,7 @@ const App: React.FC = () => {
         currentPage={currentPage}
         searchQuery={searchQuery}
         viewedProfileUser={viewedProfileUser}
-        currentUser={users.currentUser}
+        currentUser={currentUser}
         unreadCount={unreadCount}
         onHomeClick={handleGoHome}
         onProfileClick={handleGoToMyProfile}

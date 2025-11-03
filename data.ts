@@ -3,7 +3,6 @@ import { User, Post, Notification, Message, Story, Reel } from './types';
 type ProfileView = { viewer: User; timestamp: string };
 
 export const initialUsers: Record<string, User> = {
-  currentUser: { name: 'أنت', avatarUrl: 'https://picsum.photos/seed/you/100/100', bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.', country: { value: 'السعودية', isPublic: true }, gender: { value: 'أنثى', isPublic: true }, isOnline: true },
   sara: { name: 'سارة', avatarUrl: 'https://picsum.photos/seed/sara/100/100', isOnline: true },
   ahmed: { name: 'أحمد', avatarUrl: 'https://picsum.photos/seed/ahmed/100/100', isOnline: false },
   fatima: { name: 'فاطمة', avatarUrl: 'https://picsum.photos/seed/fatima/100/100', isOnline: true },
@@ -14,7 +13,7 @@ export const initialUsers: Record<string, User> = {
 export const initialPosts: Post[] = [
   { id: 1, author: initialUsers.sara, text: 'يوم جميل في الحديقة اليوم! الطقس كان مثالياً. ☀️', imageUrl: 'https://picsum.photos/seed/garden/600/400', likes: 15, shares: 7, isLiked: false, timestamp: 'قبل 5 دقائق', comments: [ { id: 1, author: initialUsers.ahmed, text: 'صور رائعة!' }, { id: 2, author: initialUsers.fatima, text: 'أتمنى لو كنت هناك.' }, ], },
   { id: 2, author: initialUsers.ahmed, text: 'أنهيت للتو قراءة كتاب رائع. أوصي به بشدة لكل محبي الخيال العلمي.', likes: 8, shares: 2, isLiked: true, timestamp: 'قبل ساعة', comments: [], },
-  { id: 3, author: initialUsers.currentUser, text: 'تجربة وصفة جديدة للعشاء الليلة. أتمنى أن تنجح!', likes: 2, shares: 1, isLiked: false, timestamp: 'قبل 3 ساعات', comments: [], },
+  { id: 3, author: initialUsers.ahmed, text: 'تجربة وصفة جديدة للعشاء الليلة. أتمنى أن تنجح!', likes: 2, shares: 1, isLiked: false, timestamp: 'قبل 3 ساعات', comments: [], },
 ];
 
 export const initialReels: Reel[] = [
@@ -60,7 +59,7 @@ export const initialReels: Reel[] = [
 
 
 export const initialProfileViews: Record<string, ProfileView[]> = {
-  [initialUsers.currentUser.name]: [
+  [initialUsers.sara.name]: [
     { viewer: initialUsers.sara, timestamp: 'قبل ساعتين' },
     { viewer: initialUsers.ahmed, timestamp: 'قبل يوم' }
   ]
@@ -73,14 +72,14 @@ export const initialNotifications: Notification[] = [
 ];
 
 export const initialMessages: Message[] = [
-    { id: 1, senderKey: 'sara', receiverKey: 'currentUser', text: 'مرحباً! كيف حالك؟', timestamp: 'قبل 10 دقائق' },
-    { id: 2, senderKey: 'currentUser', receiverKey: 'sara', text: 'أهلاً سارة! أنا بخير، شكراً لك. ماذا عنك؟', timestamp: 'قبل 8 دقائق' },
-    { id: 3, senderKey: 'sara', receiverKey: 'currentUser', text: 'بخير أيضاً. هل رأيت المنشور الجديد؟', timestamp: 'قبل 5 دقائق' },
+    { id: 1, senderKey: 'sara', receiverKey: 'ahmed', text: 'مرحباً أحمد! كيف حالك؟', timestamp: 'قبل 10 دقائق' },
+    { id: 2, senderKey: 'ahmed', receiverKey: 'sara', text: 'أهلاً سارة! أنا بخير، شكراً لك. ماذا عنك؟', timestamp: 'قبل 8 دقائق' },
+    { id: 3, senderKey: 'sara', receiverKey: 'ahmed', text: 'بخير أيضاً. هل رأيت المنشور الجديد؟', timestamp: 'قبل 5 دقائق' },
 ];
 
 export const initialStories: Story[] = [
-  { id: 1, authorKey: 'sara', type: 'image', content: 'https://picsum.photos/seed/story1/1080/1920', caption: 'مناظر خلابة!', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), viewedBy: ['currentUser'] },
+  { id: 1, authorKey: 'sara', type: 'image', content: 'https://picsum.photos/seed/story1/1080/1920', caption: 'مناظر خلابة!', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), viewedBy: ['ahmed'] },
   { id: 2, authorKey: 'sara', type: 'text', content: 'أفضل قهوة تذوقتها على الإطلاق!', backgroundColor: 'bg-gradient-to-br from-purple-500 to-indigo-600', timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), viewedBy: [] },
   { id: 3, authorKey: 'ahmed', type: 'image', content: 'https://picsum.photos/seed/story2/1080/1920', caption: 'مغامرة جديدة', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), viewedBy: [] },
-  { id: 4, authorKey: 'fatima', type: 'text', content: 'يوم هادئ ومريح 😌', backgroundColor: 'bg-gradient-to-br from-green-400 to-blue-500', timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000), viewedBy: ['currentUser'] },
+  { id: 4, authorKey: 'fatima', type: 'text', content: 'يوم هادئ ومريح 😌', backgroundColor: 'bg-gradient-to-br from-green-400 to-blue-500', timestamp: new Date(Date.now() - 10 * 60 * 60 * 1000), viewedBy: ['sara'] },
 ];

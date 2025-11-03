@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { XIcon, CogIcon, ShieldCheckIcon, KeyIcon, UserCircleIcon, ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
 type SettingsView = 'main' | 'privacy' | 'password' | 'account';
@@ -24,7 +26,7 @@ const ToggleSwitch: React.FC<{ label: string }> = ({ label }) => {
 };
 
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onLogout }) => {
   const [activeView, setActiveView] = useState<SettingsView>('main');
 
   // Reset view when modal is closed
@@ -150,25 +152,36 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" aria-modal="true" role="dialog">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4 p-6 relative animate-fade-in-up">
-        <div className="flex justify-between items-center border-b pb-3 mb-5">
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            {activeView === 'main' ? (
-                <CogIcon className="w-6 h-6 text-slate-500" />
-            ) : (
-                <button onClick={() => setActiveView('main')} className="p-2 -mr-2 rtl:-mr-0 rtl:-ml-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="رجوع">
-                    <ChevronRightIcon className="w-6 h-6 text-slate-500" />
-                </button>
-            )}
-             <h2 className="text-xl font-bold text-slate-800">{titles[activeView]}</h2>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="إغلاق">
-            <XIcon className="w-6 h-6 text-slate-500" />
-          </button>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4 flex flex-col" style={{minHeight: '400px'}}>
+        <div className="p-6 relative animate-fade-in-up flex-grow flex flex-col">
+            <div className="flex justify-between items-center border-b pb-3 mb-5">
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                {activeView === 'main' ? (
+                    <CogIcon className="w-6 h-6 text-slate-500" />
+                ) : (
+                    <button onClick={() => setActiveView('main')} className="p-2 -mr-2 rtl:-mr-0 rtl:-ml-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="رجوع">
+                        <ChevronRightIcon className="w-6 h-6 text-slate-500" />
+                    </button>
+                )}
+                <h2 className="text-xl font-bold text-slate-800">{titles[activeView]}</h2>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="إغلاق">
+                <XIcon className="w-6 h-6 text-slate-500" />
+            </button>
+            </div>
+            
+            <div className="flex-grow">
+                {renderContent()}
+            </div>
         </div>
-        
-        {renderContent()}
-        
+         <div className="bg-slate-50 p-4 border-t rounded-b-lg">
+              <button 
+                  onClick={onLogout} 
+                  className="w-full text-center text-slate-600 font-semibold p-2 rounded-md hover:bg-slate-200 transition-colors"
+              >
+                تسجيل الخروج
+              </button>
+        </div>
       </div>
     </div>
   );
