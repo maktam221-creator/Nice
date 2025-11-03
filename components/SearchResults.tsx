@@ -11,6 +11,7 @@ interface SearchResultsProps {
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
+  onSave: (postId: number) => void;
   query: string;
   following: string[];
   onFollowToggle: (userName: string) => void;
@@ -48,7 +49,7 @@ const UserResultCard: React.FC<UserResultCardProps> = ({ user, onViewProfile, is
 };
 
 
-const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser, onViewProfile, onLike, onAddComment, onShare, query, following, onFollowToggle }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser, onViewProfile, onLike, onAddComment, onShare, onSave, query, following, onFollowToggle }) => {
   if (users.length === 0 && posts.length === 0) {
     return (
       <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
@@ -87,6 +88,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser
                 onLike={onLike}
                 onAddComment={onAddComment}
                 onShare={onShare}
+                onSave={onSave}
                 currentUser={currentUser}
                 onViewProfile={onViewProfile}
               />

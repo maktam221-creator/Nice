@@ -4,7 +4,7 @@ import React, { useState, useRef } from 'react';
 import { User, Post, Reel } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
 import { uploadMedia } from '../services/cloudinaryService';
 
@@ -12,7 +12,9 @@ interface ProfilePageProps {
   user: User;
   posts: Post[];
   reels: Reel[];
+  savedPosts: Post[];
   onLike: (postId: number) => void;
+  onSave: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
   onAddPost: (text: string, imageUrl?: string) => void;
@@ -27,10 +29,10 @@ interface ProfilePageProps {
   onUpdateAvatar: (newAvatarUrl: string) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'reels'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -167,6 +169,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, onLike, o
                     <VideoCameraIcon className="w-5 h-5" />
                     <span>الفيديوهات</span>
                 </button>
+                {isCurrentUserProfile && (
+                     <button
+                        onClick={() => setActiveTab('saved')}
+                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${activeTab === 'saved' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                    >
+                        <BookmarkIcon className="w-5 h-5" />
+                        <span>المحفوظات</span>
+                    </button>
+                )}
             </nav>
         </div>
         
@@ -174,7 +185,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, onLike, o
             posts.length > 0 ? (
                 <div className="space-y-6">
                     {posts.map(post => (
-                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} currentUser={currentUser} onViewProfile={onViewProfile} />
+                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} />
                     ))}
                 </div>
             ) : (
@@ -196,6 +207,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, onLike, o
             ) : (
                 <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
                     <p>لا توجد فيديوهات لعرضها.</p>
+                </div>
+            )
+        )}
+
+        {activeTab === 'saved' && isCurrentUserProfile && (
+            savedPosts.length > 0 ? (
+                <div className="space-y-6">
+                    {savedPosts.map(post => (
+                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
+                    <p>لا توجد منشورات محفوظة.</p>
                 </div>
             )
         )}

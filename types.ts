@@ -21,6 +21,7 @@ export interface Post {
   likes: number;
   shares: number;
   isLiked: boolean;
+  isSaved: boolean;
   comments: Comment[];
   timestamp: string;
 }

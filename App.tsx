@@ -36,7 +36,7 @@ const App: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [following, setFollowing] = useState<string[]>(['sara']);
+  const [following, setFollowing] = useState<string[]>([]);
   const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -100,12 +100,23 @@ const App: React.FC = () => {
 
   const handleAddPost = (text: string, imageUrl?: string) => {
     if (!currentUser) return;
-    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, timestamp: 'الآن', comments: [], };
+    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, isSaved: false, timestamp: 'الآن', comments: [], };
     setPosts([newPost, ...posts]);
   };
 
   const handleLikePost = (postId: number) => {
     setPosts( posts.map((post) => { if (post.id === postId) { const isLiked = !post.isLiked; return { ...post, isLiked: isLiked, likes: isLiked ? post.likes + 1 : post.likes - 1, }; } return post; }) );
+  };
+
+  const handleSavePost = (postId: number) => {
+    setPosts(
+        posts.map((post) => {
+            if (post.id === postId) {
+                return { ...post, isSaved: !post.isSaved };
+            }
+            return post;
+        })
+    );
   };
 
   const handleSharePost = (postId: number) => {
@@ -291,6 +302,7 @@ const App: React.FC = () => {
   const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
   const unreadCount = notifications.filter(n => !n.read).length;
   const followingUsers = following.map(key => users[key]).filter(Boolean);
+  const savedPosts = posts.filter(post => post.isSaved);
 
   const activeStories = useMemo(() => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -361,12 +373,12 @@ const App: React.FC = () => {
 
   const renderMainContent = () => {
     if (searchQuery) {
-      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
+      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
     }
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
             }
             return null;
         case 'chat':
@@ -385,7 +397,7 @@ const App: React.FC = () => {
                     />
                     <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
                     <div className="mt-8">
-                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={currentUser} onViewProfile={handleViewProfile} /> ))}
+                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} currentUser={currentUser} onViewProfile={handleViewProfile} /> ))}
                     </div>
                 </>
             );

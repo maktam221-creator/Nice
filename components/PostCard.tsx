@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Post, User } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon } from './Icons';
+import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon } from './Icons';
 import CommentSection from './CommentSection';
 
 interface PostCardProps {
@@ -8,11 +8,12 @@ interface PostCardProps {
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
+  onSave: (postId: number) => void;
   currentUser: User;
   onViewProfile: (user: User) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare, currentUser, onViewProfile }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare, onSave, currentUser, onViewProfile }) => {
   const [showComments, setShowComments] = useState(false);
 
   const handleShare = async () => {
@@ -70,7 +71,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
       <div className="flex border-t border-b border-slate-200 py-1">
         <button
           onClick={() => onLike(post.id)}
-          className={`w-1/3 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors hover:bg-slate-100 ${
+          className={`w-1/4 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors hover:bg-slate-100 ${
             post.isLiked ? 'text-red-500' : 'text-slate-600'
           }`}
         >
@@ -79,17 +80,26 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
         </button>
         <button
           onClick={() => setShowComments(!showComments)}
-          className="w-1/3 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100"
+          className="w-1/4 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100"
         >
           <CommentIcon className="w-6 h-6" />
           <span className="font-semibold">تعليق</span>
         </button>
         <button
           onClick={handleShare}
-          className="w-1/3 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100"
+          className="w-1/4 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100"
         >
           <ShareIcon className="w-6 h-6" />
           <span className="font-semibold">مشاركة</span>
+        </button>
+         <button
+          onClick={() => onSave(post.id)}
+          className={`w-1/4 flex justify-center items-center space-x-2 p-2 rounded-md transition-colors hover:bg-slate-100 ${
+            post.isSaved ? 'text-indigo-600' : 'text-slate-600'
+          }`}
+        >
+          <BookmarkIcon className={`w-6 h-6 ${post.isSaved ? 'fill-current' : ''}`} />
+          <span className="font-semibold">حفظ</span>
         </button>
       </div>
       
