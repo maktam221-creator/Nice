@@ -27,9 +27,11 @@ interface ProfilePageProps {
   onFollowToggle: (userName: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
   onUpdateAvatar: (newAvatarUrl: string) => void;
+  onEditPost: (post: Post) => void;
+  onDeletePost: (postId: number) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar, onEditPost, onDeletePost }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
@@ -185,7 +187,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
             posts.length > 0 ? (
                 <div className="space-y-6">
                     {posts.map(post => (
-                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} />
+                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
                     ))}
                 </div>
             ) : (
@@ -215,7 +217,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
             savedPosts.length > 0 ? (
                 <div className="space-y-6">
                     {savedPosts.map(post => (
-                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} />
+                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={onViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
                     ))}
                 </div>
             ) : (

@@ -3,6 +3,7 @@ import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
 import ProfilePage from './components/ProfilePage';
 import EditProfileModal from './components/EditProfileModal';
+import EditPostModal from './components/EditPostModal';
 import SettingsModal from './components/SettingsModal';
 import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
@@ -18,29 +19,87 @@ import AuthPage from './components/AuthPage';
 import { useAuth } from './contexts/AuthContext';
 import { Post, User, Notification, Message, Story, Reel } from './types';
 import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories, initialReels } from './data';
-import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from './components/Icons';
+import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon, VideoCameraIcon, XIcon, TrashIcon } from './components/Icons';
+import { loadState, saveState } from './services/storageService';
 
 type ProfileView = { viewer: User; timestamp: string };
 type Page = 'home' | 'profile' | 'chat' | 'shorts';
+
+// --- Confirmation Modal Component ---
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'حذف', cancelText = 'إلغاء' }) => {
+  if (!isOpen) {
+    return null;
+  }
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" aria-modal="true" role="dialog">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4 p-6 relative animate-fade-in-up">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-3 rtl:space-x-reverse">
+            <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800" id="modal-title">{title}</h2>
+          </div>
+          <button onClick={onClose} className="-mt-2 -mr-2 p-2 rounded-full hover:bg-slate-100 transition-colors" aria-label="إغلاق">
+            <XIcon className="w-6 h-6 text-slate-500" />
+          </button>
+        </div>
+        <div className="mt-4">
+          <p className="text-sm text-slate-600">{message}</p>
+        </div>
+        <div className="mt-6 flex justify-end items-center space-x-2 rtl:space-x-reverse">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-md hover:bg-slate-200 transition-colors"
+          >
+            {cancelText}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="px-6 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 disabled:bg-red-300 transition-colors"
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 const App: React.FC = () => {
   const { currentUser: authUser, loading: authLoading, logout } = useAuth();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  const [users, setUsers] = useState<Record<string, User>>({});
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [reels, setReels] = useState<Reel[]>([]);
-  const [stories, setStories] = useState<Story[]>([]);
+  const [users, setUsers] = useState<Record<string, User>>(() => loadState('maydan_users', initialUsers));
+  const [posts, setPosts] = useState<Post[]>(() => loadState('maydan_posts', initialPosts));
+  const [reels, setReels] = useState<Reel[]>(() => loadState('maydan_reels', initialReels));
+  const [stories, setStories] = useState<Story[]>(() => loadState('maydan_stories', initialStories));
+  const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>(() => loadState('maydan_profileViews', initialProfileViews));
+  const [notifications, setNotifications] = useState<Notification[]>(() => loadState('maydan_notifications', initialNotifications));
+  const [messages, setMessages] = useState<Message[]>(() => loadState('maydan_messages', initialMessages));
+  const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', []));
+  
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [postIdToDelete, setPostIdToDelete] = useState<number | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [following, setFollowing] = useState<string[]>([]);
-  const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>({});
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
   const [isStoryCreatorOpen, setIsStoryCreatorOpen] = useState(false);
   const [isReelCreatorOpen, setIsReelCreatorOpen] = useState(false);
@@ -51,15 +110,14 @@ const App: React.FC = () => {
   const notificationsRef = useRef<HTMLDivElement>(null);
   const notificationButtonRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setUsers(initialUsers);
-    setPosts(initialPosts);
-    setReels(initialReels);
-    setProfileViews(initialProfileViews);
-    setNotifications(initialNotifications);
-    setMessages(initialMessages);
-    setStories(initialStories);
-  }, []);
+  useEffect(() => { saveState('maydan_users', users); }, [users]);
+  useEffect(() => { saveState('maydan_posts', posts); }, [posts]);
+  useEffect(() => { saveState('maydan_reels', reels); }, [reels]);
+  useEffect(() => { saveState('maydan_stories', stories); }, [stories]);
+  useEffect(() => { saveState('maydan_profileViews', profileViews); }, [profileViews]);
+  useEffect(() => { saveState('maydan_notifications', notifications); }, [notifications]);
+  useEffect(() => { saveState('maydan_messages', messages); }, [messages]);
+  useEffect(() => { saveState('maydan_following', following); }, [following]);
 
   useEffect(() => {
     if (authUser) {
@@ -126,6 +184,30 @@ const App: React.FC = () => {
   const handleAddComment = (postId: number, text: string) => {
     if (!currentUser) return;
     setPosts( posts.map((post) => { if (post.id === postId) { const newComment = { id: Date.now(), author: currentUser, text, }; return { ...post, comments: [...post.comments, newComment] }; } return post; }) );
+  };
+  
+  const handleOpenEditPostModal = (post: Post) => {
+    setEditingPost(post);
+  };
+
+  const handleCloseEditPostModal = () => {
+      setEditingPost(null);
+  };
+
+  const handleEditPost = (postId: number, newText: string) => {
+      setPosts(posts.map(p => (p.id === postId ? { ...p, text: newText } : p)));
+      handleCloseEditPostModal();
+  };
+
+  const handleDeletePost = (postId: number) => {
+    setPostIdToDelete(postId);
+  };
+
+  const confirmDeletePost = () => {
+    if (postIdToDelete !== null) {
+      setPosts(posts.filter(p => p.id !== postIdToDelete));
+      setPostIdToDelete(null);
+    }
   };
 
   const handleLikeReel = (reelId: number) => {
@@ -373,12 +455,12 @@ const App: React.FC = () => {
 
   const renderMainContent = () => {
     if (searchQuery) {
-      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
+      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} />;
     }
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />
             }
             return null;
         case 'chat':
@@ -397,7 +479,7 @@ const App: React.FC = () => {
                     />
                     <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
                     <div className="mt-8">
-                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} currentUser={currentUser} onViewProfile={handleViewProfile} /> ))}
+                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} /> ))}
                     </div>
                 </>
             );
@@ -463,6 +545,12 @@ const App: React.FC = () => {
         </aside>
       </div>
       <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={currentUser} onSave={handleUpdateProfile} />
+      <EditPostModal
+        isOpen={!!editingPost}
+        onClose={handleCloseEditPostModal}
+        post={editingPost}
+        onSave={handleEditPost}
+      />
       <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={logout} />
        <StoryCreatorModal 
         isOpen={isStoryCreatorOpen}
@@ -484,6 +572,13 @@ const App: React.FC = () => {
           onMarkAsViewed={handleMarkStoryAsViewed}
         />
       )}
+      <ConfirmationModal
+          isOpen={postIdToDelete !== null}
+          onClose={() => setPostIdToDelete(null)}
+          onConfirm={confirmDeletePost}
+          title="تأكيد الحذف"
+          message="هل أنت متأكد أنك تريد حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء."
+      />
       <BottomNavBar
         currentPage={currentPage}
         searchQuery={searchQuery}

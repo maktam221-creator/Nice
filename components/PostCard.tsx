@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Post, User } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon } from './Icons';
+import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from './Icons';
 import CommentSection from './CommentSection';
 
 interface PostCardProps {
@@ -11,10 +11,27 @@ interface PostCardProps {
   onSave: (postId: number) => void;
   currentUser: User;
   onViewProfile: (user: User) => void;
+  onDelete: (postId: number) => void;
+  onEdit: (post: Post) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare, onSave, currentUser, onViewProfile }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare, onSave, currentUser, onViewProfile, onDelete, onEdit }) => {
   const [showComments, setShowComments] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
+  const isOwnPost = post.author.name === currentUser.name;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
+            setIsOptionsOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleShare = async () => {
     // Construct a shareable URL from the origin to ensure it's always valid.
@@ -39,7 +56,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6">
-      <div className="flex items-center mb-4">
+      <div className="flex items-start justify-between mb-4">
         <button onClick={() => onViewProfile(post.author)} className="flex items-center space-x-4 rtl:space-x-reverse group">
             <img src={post.author.avatarUrl} alt={post.author.name} className="w-12 h-12 rounded-full" />
             <div>
@@ -47,6 +64,37 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
               <p className="text-sm text-slate-500 text-right">{post.timestamp}</p>
             </div>
         </button>
+        {isOwnPost && (
+            <div className="relative" ref={optionsMenuRef}>
+                <button onClick={() => setIsOptionsOpen(!isOptionsOpen)} className="p-2 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                    <EllipsisVerticalIcon className="w-6 h-6" />
+                </button>
+                {isOptionsOpen && (
+                    <div className="absolute left-0 rtl:left-auto rtl:right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-slate-200">
+                        <ul className="py-1">
+                            <li>
+                                <button
+                                    onClick={() => { onEdit(post); setIsOptionsOpen(false); }}
+                                    className="w-full text-right flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                                >
+                                    <PencilIcon className="w-5 h-5 ml-3 rtl:ml-0 rtl:mr-3" />
+                                    <span>تعديل المنشور</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button
+                                    onClick={() => { onDelete(post.id); setIsOptionsOpen(false); }}
+                                    className="w-full text-right flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                >
+                                    <TrashIcon className="w-5 h-5 ml-3 rtl:ml-0 rtl:mr-3" />
+                                    <span>حذف المنشور</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                )}
+            </div>
+        )}
       </div>
       <p className="text-slate-700 whitespace-pre-wrap mb-4">{post.text}</p>
       
