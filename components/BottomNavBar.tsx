@@ -35,7 +35,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
         { name: 'فيديوهات', icon: VideoCameraIcon, action: onShortsClick, active: currentPage === 'shorts' },
         { name: 'الدردشات', icon: ChatBubbleLeftRightIcon, action: onChatClick, active: currentPage === 'chat' },
         { name: 'الإشعارات', icon: BellIcon, action: onNotificationsClick, active: false, badge: unreadCount },
-        { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUser?.name === currentUser.name },
+        { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUser?.uid === currentUser.uid },
     ];
 
   return (

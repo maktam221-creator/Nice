@@ -16,14 +16,14 @@ interface SearchResultsProps {
   onDelete: (postId: number) => void;
   query: string;
   following: string[];
-  onFollowToggle: (userName: string) => void;
+  onFollowToggle: (userUid: string) => void;
 }
 
 interface UserResultCardProps {
     user: User;
     onViewProfile: (user: User) => void;
     isFollowing: boolean;
-    onFollowToggle: (userName: string) => void;
+    onFollowToggle: (userUid: string) => void;
 }
 
 const UserResultCard: React.FC<UserResultCardProps> = ({ user, onViewProfile, isFollowing, onFollowToggle }) => {
@@ -36,7 +36,7 @@ const UserResultCard: React.FC<UserResultCardProps> = ({ user, onViewProfile, is
                 </div>
             </button>
             <button
-                onClick={() => onFollowToggle(user.name)}
+                onClick={() => onFollowToggle(user.uid)}
                 className={`flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors shrink-0 ${
                     isFollowing 
                     ? 'text-slate-600 bg-slate-200 hover:bg-slate-300' 
@@ -68,10 +68,10 @@ const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser
           <div className="space-y-4">
             {users.map(user => (
               <UserResultCard 
-                key={user.name} 
+                key={user.uid} 
                 user={user} 
                 onViewProfile={onViewProfile} 
-                isFollowing={following.includes(user.name)}
+                isFollowing={following.includes(user.uid)}
                 onFollowToggle={onFollowToggle}
               />
             ))}

@@ -124,6 +124,7 @@ const App: React.FC = () => {
       // In a real app, you would fetch the user's profile from Firestore here.
       // For now, we'll create a profile based on the auth user's info.
       const userProfile: User = {
+        uid: authUser.uid,
         name: authUser.displayName || authUser.email?.split('@')[0] || 'مستخدم جديد',
         avatarUrl: authUser.photoURL || `https://picsum.photos/seed/${authUser.uid}/100/100`,
         bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.',
@@ -136,6 +137,15 @@ const App: React.FC = () => {
       setCurrentUser(null);
     }
   }, [authUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+        setUsers(prevUsers => ({
+            ...prevUsers,
+            [currentUser.uid]: currentUser
+        }));
+    }
+  }, [currentUser]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -247,8 +257,8 @@ const App: React.FC = () => {
     
     setCurrentUser(updatedUser);
 
-    if (viewedProfileUser && viewedProfileUser.name === oldUser.name) { setViewedProfileUser(updatedUser); }
-    setPosts(prevPosts => prevPosts.map(post => { const updatedPost = { ...post }; if (post.author.name === oldUser.name) { updatedPost.author = updatedUser; } updatedPost.comments = post.comments.map(comment => { if (comment.author.name === oldUser.name) { return { ...comment, author: updatedUser }; } return comment; }); return updatedPost; }));
+    if (viewedProfileUser && viewedProfileUser.uid === oldUser.uid) { setViewedProfileUser(updatedUser); }
+    setPosts(prevPosts => prevPosts.map(post => { const updatedPost = { ...post }; if (post.author.uid === oldUser.uid) { updatedPost.author = updatedUser; } updatedPost.comments = post.comments.map(comment => { if (comment.author.uid === oldUser.uid) { return { ...comment, author: updatedUser }; } return comment; }); return updatedPost; }));
   };
 
   const handleUpdateAvatar = (newAvatarUrl: string) => {
@@ -258,14 +268,14 @@ const App: React.FC = () => {
   };
 
   const handleViewProfile = (user: User) => {
-    if (currentUser && user.name !== currentUser.name) {
+    if (currentUser && user.uid !== currentUser.uid) {
         const viewer = currentUser;
         setProfileViews(prev => {
-            const viewsForUser = prev[user.name] || [];
-            if (viewsForUser.length > 0 && viewsForUser[viewsForUser.length - 1].viewer.name === viewer.name) { return prev; }
+            const viewsForUser = prev[user.uid] || [];
+            if (viewsForUser.length > 0 && viewsForUser[viewsForUser.length - 1].viewer.uid === viewer.uid) { return prev; }
             const newView: ProfileView = { viewer, timestamp: 'الآن' };
             const newViews = [newView, ...viewsForUser];
-            return { ...prev, [user.name]: newViews };
+            return { ...prev, [user.uid]: newViews };
         });
     }
     setViewedProfileUser(user);
@@ -302,14 +312,10 @@ const App: React.FC = () => {
   const handleSendMessage = (recipient: User, text: string) => {
     if (!currentUser) return;
     
-    const recipientKey = Object.keys(users).find(key => users[key].name === recipient.name);
-    if (!recipientKey) return;
-
-    // This is a simplified message system. In a real app, 'currentUser' would be a UID.
     const newMessage: Message = {
       id: Date.now(),
-      senderKey: 'currentUser', // Placeholder key for the current user
-      receiverKey: recipientKey,
+      senderKey: currentUser.uid,
+      receiverKey: recipient.uid,
       text,
       timestamp: 'الآن',
     };
@@ -318,8 +324,8 @@ const App: React.FC = () => {
     setTimeout(() => {
         const replyMessage: Message = {
             id: Date.now() + 1,
-            senderKey: recipientKey,
-            receiverKey: 'currentUser',
+            senderKey: recipient.uid,
+            receiverKey: currentUser.uid,
             text: 'شكراً لك! سألقي نظرة على ذلك.',
             timestamp: 'الآن',
         };
@@ -336,8 +342,8 @@ const App: React.FC = () => {
     }, 1500);
   };
 
-  const handleFollowToggle = (userName: string) => {
-    setFollowing(prev => { const isFollowing = prev.includes(userName); if (isFollowing) { return prev.filter(name => name !== userName); } else { return [...prev, userName]; } });
+  const handleFollowToggle = (userUid: string) => {
+    setFollowing(prev => { const isFollowing = prev.includes(userUid); if (isFollowing) { return prev.filter(uid => uid !== userUid); } else { return [...prev, userUid]; } });
   };
   
   const handleNotificationNavigate = (notification: Notification) => {
@@ -351,9 +357,10 @@ const App: React.FC = () => {
   };
 
   const handleAddStory = (storyData: { type: 'image' | 'text'; content: string; caption?: string; backgroundColor?: string; }) => {
+    if (!currentUser) return;
     const newStory: Story = {
       id: Date.now(),
-      authorKey: 'currentUser', // Placeholder
+      authorKey: currentUser.uid,
       timestamp: new Date(),
       viewedBy: [],
       ...storyData
@@ -361,29 +368,27 @@ const App: React.FC = () => {
     setStories(prev => [newStory, ...prev]);
   };
 
-  const handleViewStories = (userName: string) => {
-      const userKey = Object.keys(users).find(key => users[key].name === userName)
-      if (userKey) {
-          setViewingStoryUserKey(userKey);
-      }
+  const handleViewStories = (userUid: string) => {
+      setViewingStoryUserKey(userUid);
   };
 
   const handleMarkStoryAsViewed = (storyId: number) => {
+      if (!currentUser) return;
       setStories(prevStories => prevStories.map(story => {
-          if (story.id === storyId && !story.viewedBy.includes('currentUser')) { // Placeholder
-              return { ...story, viewedBy: [...story.viewedBy, 'currentUser'] };
+          if (story.id === storyId && !story.viewedBy.includes(currentUser.uid)) {
+              return { ...story, viewedBy: [...story.viewedBy, currentUser.uid] };
           }
           return story;
       }));
   };
 
-  const userPosts = posts.filter(post => post.author.name === viewedProfileUser?.name);
-  const userReels = reels.filter(reel => reel.author.name === viewedProfileUser?.name);
+  const userPosts = posts.filter(post => post.author.uid === viewedProfileUser?.uid);
+  const userReels = reels.filter(reel => reel.author.uid === viewedProfileUser?.uid);
   const lowercasedQuery = searchQuery.trim().toLowerCase();
   const filteredPosts = searchQuery ? posts.filter(post => post.text.toLowerCase().includes(lowercasedQuery) || post.author.name.toLowerCase().includes(lowercasedQuery)) : [];
-  const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
+  const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.uid !== currentUser?.uid && user.name.toLowerCase().includes(lowercasedQuery)) : [];
   const unreadCount = notifications.filter(n => !n.read).length;
-  const followingUsers = following.map(key => users[key]).filter(Boolean);
+  const followingUsers = following.map(uid => users[uid]).filter(Boolean);
   const savedPosts = posts.filter(post => post.isSaved);
 
   const activeStories = useMemo(() => {
@@ -394,8 +399,11 @@ const App: React.FC = () => {
   const storyGroups = useMemo(() => {
       const groups: Record<string, { user: User; stories: Story[]; hasUnviewed: boolean }> = {};
       
+      if (!currentUser) return [];
+
       for (const story of activeStories) {
-          if (story.authorKey === 'currentUser') continue;
+          if (story.authorKey === currentUser.uid) continue;
+          if (!users[story.authorKey]) continue;
 
           if (!groups[story.authorKey]) {
               groups[story.authorKey] = {
@@ -405,17 +413,17 @@ const App: React.FC = () => {
               };
           }
           groups[story.authorKey].stories.push(story);
-          if (!story.viewedBy.includes('currentUser')) { // Placeholder
+          if (!story.viewedBy.includes(currentUser.uid)) {
               groups[story.authorKey].hasUnviewed = true;
           }
       }
       return Object.values(groups).filter(g => g.user);
-  }, [activeStories, users]);
+  }, [activeStories, users, currentUser]);
   
   const viewingUserStories = viewingStoryUserKey ? activeStories.filter(s => s.authorKey === viewingStoryUserKey) : [];
 
   const handleStoryNavigation = (direction: 'next' | 'prev') => {
-      const userKeysWithStories = storyGroups.map(g => Object.keys(users).find(key => users[key].name === g.user.name)).filter(Boolean) as string[];
+      const userKeysWithStories = storyGroups.map(g => g.user.uid).filter(Boolean) as string[];
       if (!viewingStoryUserKey) return;
       const currentIndex = userKeysWithStories.indexOf(viewingStoryUserKey);
       
@@ -460,7 +468,7 @@ const App: React.FC = () => {
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.uid]} onUpdateAvatar={handleUpdateAvatar} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />
             }
             return null;
         case 'chat':
@@ -474,7 +482,7 @@ const App: React.FC = () => {
                     <StoriesTray
                       storyGroups={storyGroups}
                       currentUser={currentUser}
-                      onViewStories={(userName) => handleViewStories(userName)}
+                      onViewStories={(userUid) => handleViewStories(userUid)}
                       onAddStory={() => setIsStoryCreatorOpen(true)}
                     />
                     <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
@@ -521,7 +529,7 @@ const App: React.FC = () => {
                   <ChatBubbleLeftRightIcon className={`w-7 h-7 ${currentPage === 'chat' ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
                 <button onClick={handleGoToMyProfile} aria-label="الملف الشخصي" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.name === currentUser.name ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.uid === currentUser.uid ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
             </div>
             <div className="hidden lg:block">

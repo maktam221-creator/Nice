@@ -19,7 +19,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
   const [showComments, setShowComments] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
-  const isOwnPost = post.author.name === currentUser.name;
+  const isOwnPost = post.author.uid === currentUser.uid;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

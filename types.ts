@@ -1,4 +1,5 @@
 export interface User {
+  uid: string;
   name: string;
   avatarUrl: string;
   gender?: { value: string; isPublic: boolean };

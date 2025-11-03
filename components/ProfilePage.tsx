@@ -24,7 +24,7 @@ interface ProfilePageProps {
   onOpenSettings: () => void;
   onGoToChat: (user: User) => void;
   following: string[];
-  onFollowToggle: (userName: string) => void;
+  onFollowToggle: (userUid: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
   onUpdateAvatar: (newAvatarUrl: string) => void;
   onEditPost: (post: Post) => void;
@@ -35,8 +35,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
-  const isCurrentUserProfile = user.name === currentUser.name;
-  const isFollowing = following.includes(user.name);
+  const isCurrentUserProfile = user.uid === currentUser.uid;
+  const isFollowing = following.includes(user.uid);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,7 +128,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
               ) : (
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button 
-                        onClick={() => onFollowToggle(user.name)}
+                        onClick={() => onFollowToggle(user.uid)}
                         className={`w-full sm:w-auto flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                             isFollowing 
                             ? 'text-slate-600 bg-slate-200 hover:bg-slate-300' 

@@ -25,7 +25,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(initialTargetUser);
   const [messageText, setMessageText] = useState('');
-  const [lockedChats, setLockedChats] = useState<string[]>(['sara']); // Add state for locked chats, lock 'sara' by default
+  const [lockedChats, setLockedChats] = useState<string[]>([]); // Add state for locked chats
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,19 +39,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, selectedUser]);
 
-  const getUserKey = (user: User | null): string | null => {
-    if (!user) return null;
-    return Object.keys(allUsers).find(key => allUsers[key].name === user.name) || null;
-  };
-
   const handleToggleLock = (user: User) => {
-    const userKey = getUserKey(user);
-    if (!userKey) return;
+    const userUid = user.uid;
+    if (!userUid) return;
 
     setLockedChats(prev => 
-      prev.includes(userKey) 
-        ? prev.filter(key => key !== userKey) 
-        : [...prev, userKey]
+      prev.includes(userUid) 
+        ? prev.filter(key => key !== userUid) 
+        : [...prev, userUid]
     );
   };
 
@@ -64,21 +59,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
   
   const getConversation = () => {
-    if (!selectedUser) return [];
-    
-    const selectedUserKey = getUserKey(selectedUser);
+    if (!selectedUser || !currentUser) return [];
 
     return messages.filter(
       (msg) =>
-        (msg.senderKey === 'currentUser' && msg.receiverKey === selectedUserKey) ||
-        (msg.senderKey === selectedUserKey && msg.receiverKey === 'currentUser')
+        (msg.senderKey === currentUser.uid && msg.receiverKey === selectedUser.uid) ||
+        (msg.senderKey === selectedUser.uid && msg.receiverKey === currentUser.uid)
     ).sort((a, b) => a.id - b.id);
   };
 
   const conversation = getConversation();
   
-  const selectedUserKey = getUserKey(selectedUser);
-  const isSelectedChatLocked = selectedUserKey ? lockedChats.includes(selectedUserKey) : false;
+  const isSelectedChatLocked = selectedUser ? lockedChats.includes(selectedUser.uid) : false;
 
   return (
     <div className="bg-white rounded-lg shadow-md h-[calc(100vh-160px)] flex flex-col md:flex-row overflow-hidden">
@@ -90,14 +82,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <div className="flex-1 overflow-y-auto">
           {followingUsers.length > 0 ? (
             followingUsers.map((user) => {
-              const userKey = getUserKey(user);
-              const isLocked = userKey ? lockedChats.includes(userKey) : false;
+              const isLocked = lockedChats.includes(user.uid);
               return (
                 <button
-                  key={user.name}
+                  key={user.uid}
                   onClick={() => setSelectedUser(user)}
                   className={`w-full text-right p-4 flex items-center justify-between space-x-4 rtl:space-x-reverse transition-colors ${
-                    selectedUser?.name === user.name ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                    selectedUser?.uid === user.uid ? 'bg-indigo-50' : 'hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center space-x-4 rtl:space-x-reverse">
@@ -172,11 +163,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
             ) : (
                 <div className="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-4">
                   {conversation.map((msg) => {
-                     const isSentByCurrentUser = msg.senderKey === 'currentUser';
+                     const isSentByCurrentUser = msg.senderKey === currentUser.uid;
                      const sender = allUsers[msg.senderKey];
                      return (
                         <div key={msg.id} className={`flex items-end gap-3 ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                           {!isSentByCurrentUser && <img src={sender.avatarUrl} alt={sender.name} className="w-8 h-8 rounded-full"/>}
+                           {!isSentByCurrentUser && sender && <img src={sender.avatarUrl} alt={sender.name} className="w-8 h-8 rounded-full"/>}
                            <div>
                              <div className={`w-fit max-w-xs lg:max-w-md p-3 rounded-2xl ${isSentByCurrentUser ? 'bg-indigo-600 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
                                <p className="text-sm">{msg.text}</p>

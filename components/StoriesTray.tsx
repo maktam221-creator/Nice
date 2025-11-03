@@ -10,7 +10,7 @@ interface StoryGroup {
 interface StoriesTrayProps {
   storyGroups: StoryGroup[];
   currentUser: User;
-  onViewStories: (userKey: string) => void;
+  onViewStories: (userUid: string) => void;
   onAddStory: () => void;
 }
 
@@ -31,10 +31,9 @@ const StoriesTray: React.FC<StoriesTrayProps> = ({ storyGroups, currentUser, onV
         
         {/* Friends' Stories */}
         {storyGroups.map(({ user, hasUnviewed }) => {
-            const userKey = Object.keys(storyGroups).find(key => storyGroups[key] === user.name);
             return (
-              <div key={user.name} className="flex flex-col items-center space-y-1 flex-shrink-0 w-20">
-                <button onClick={() => onViewStories(user.name)} className="w-16 h-16 rounded-full p-1 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 disabled:from-slate-200 disabled:via-slate-300 disabled:to-slate-400">
+              <div key={user.uid} className="flex flex-col items-center space-y-1 flex-shrink-0 w-20">
+                <button onClick={() => onViewStories(user.uid)} className="w-16 h-16 rounded-full p-1 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 disabled:from-slate-200 disabled:via-slate-300 disabled:to-slate-400">
                   <div className="bg-white p-0.5 rounded-full">
                     <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
                   </div>
