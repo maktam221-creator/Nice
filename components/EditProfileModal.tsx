@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { XIcon } from './Icons';
@@ -12,15 +13,19 @@ interface EditProfileModalProps {
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, user, onSave }) => {
   const [name, setName] = useState(user.name);
   const [bio, setBio] = useState(user.bio || '');
-  const [gender, setGender] = useState(user.gender || '');
-  const [country, setCountry] = useState(user.country || '');
+  const [gender, setGender] = useState(user.gender?.value || '');
+  const [isGenderPublic, setIsGenderPublic] = useState(user.gender?.isPublic ?? true);
+  const [country, setCountry] = useState(user.country?.value || '');
+  const [isCountryPublic, setIsCountryPublic] = useState(user.country?.isPublic ?? true);
 
   useEffect(() => {
     if (user) {
       setName(user.name);
       setBio(user.bio || '');
-      setGender(user.gender || '');
-      setCountry(user.country || '');
+      setGender(user.gender?.value || '');
+      setIsGenderPublic(user.gender?.isPublic ?? true);
+      setCountry(user.country?.value || '');
+      setIsCountryPublic(user.country?.isPublic ?? true);
     }
   }, [user]);
 
@@ -34,13 +39,40 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
       ...user,
       name,
       bio,
-      gender,
-      country,
+      gender: { value: gender, isPublic: isGenderPublic },
+      country: { value: country, isPublic: isCountryPublic },
     });
     onClose();
   };
   
   const countries = ["السعودية", "مصر", "الإمارات", "الكويت", "قطر", "البحرين", "عمان", "الأردن", "لبنان", "المغرب", "تونس", "الجزائر"];
+
+  const VisibilityToggle: React.FC<{ isPublic: boolean; setVisibility: (isPublic: boolean) => void; }> = ({ isPublic, setVisibility }) => (
+    <div className="flex rounded-md shadow-sm shrink-0 mr-2 rtl:mr-0 rtl:ml-2" role="group">
+      <button
+        type="button"
+        onClick={() => setVisibility(true)}
+        className={`px-3 py-2 text-sm font-medium border transition-colors ${
+          isPublic
+            ? 'bg-indigo-600 text-white border-indigo-600 z-10'
+            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+        } rounded-r-md rtl:rounded-r-none rtl:rounded-l-md`}
+      >
+        عام
+      </button>
+      <button
+        type="button"
+        onClick={() => setVisibility(false)}
+        className={`px-3 py-2 text-sm font-medium border border-r-0 rtl:border-r rtl:border-l-0 transition-colors ${
+          !isPublic
+            ? 'bg-indigo-600 text-white border-indigo-600 z-10'
+            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+        } rounded-l-md rtl:rounded-l-none rtl:rounded-r-md`}
+      >
+        خاص
+      </button>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center" aria-modal="true" role="dialog">
@@ -66,20 +98,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="gender" className="block text-sm font-medium text-slate-700 mb-1">النوع</label>
-              <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white">
-                <option value="">اختر النوع</option>
-                <option value="ذكر">ذكر</option>
-                <option value="أنثى">أنثى</option>
-                <option value="أفضل عدم القول">أفضل عدم القول</option>
-              </select>
+              <div className="flex items-center">
+                <select id="gender" value={gender} onChange={(e) => setGender(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white">
+                  <option value="">اختر النوع</option>
+                  <option value="ذكر">ذكر</option>
+                  <option value="أنثى">أنثى</option>
+                  <option value="أفضل عدم القول">أفضل عدم القول</option>
+                </select>
+                <VisibilityToggle isPublic={isGenderPublic} setVisibility={setIsGenderPublic} />
+              </div>
             </div>
             
             <div>
               <label htmlFor="country" className="block text-sm font-medium text-slate-700 mb-1">الدولة</label>
-              <select id="country" value={country} onChange={(e) => setCountry(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white">
-                 <option value="">اختر الدولة</option>
-                 {countries.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <div className="flex items-center">
+                <select id="country" value={country} onChange={(e) => setCountry(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white">
+                   <option value="">اختر الدولة</option>
+                   {countries.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <VisibilityToggle isPublic={isCountryPublic} setVisibility={setIsCountryPublic} />
+              </div>
             </div>
           </div>
           

@@ -2,9 +2,9 @@
 export interface User {
   name: string;
   avatarUrl: string;
-  gender?: string;
+  gender?: { value: string; isPublic: boolean };
   bio?: string;
-  country?: string;
+  country?: { value:string; isPublic: boolean };
 }
 
 export interface Comment {

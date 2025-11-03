@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User, Post } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon } from './Icons';
+import ProfileViewersModal from './ProfileViewersModal';
 
 interface ProfilePageProps {
   user: User;
@@ -16,16 +17,18 @@ interface ProfilePageProps {
   onEditProfile: () => void;
   following: string[];
   onFollowToggle: (userName: string) => void;
+  viewers?: { viewer: User; timestamp: string }[];
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, following, onFollowToggle }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, following, onFollowToggle, viewers }) => {
+  const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex flex-col sm:flex-row items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex items-center space-x-6 rtl:space-x-reverse">
                 <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-slate-200 flex-shrink-0" />
                 <div className="flex-1">
@@ -34,21 +37,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
                     {(user.bio || user.country) && (
                         <div className="mt-3 text-sm text-slate-600 border-t pt-3 space-y-1">
                             {user.bio && <p>{user.bio}</p>}
-                            {user.country && <p className="font-medium">📍 من {user.country}</p>}
+                            {(user.country?.isPublic || isCurrentUserProfile) && user.country?.value && <p className="font-medium">📍 من {user.country.value}</p>}
                         </div>
                     )}
                 </div>
             </div>
-            <div className="mt-4 sm:mt-0 w-full sm:w-auto">
+            <div className="w-full sm:w-auto flex-shrink-0">
               {isCurrentUserProfile ? (
-                  <button onClick={onEditProfile} className="w-full flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors">
-                      <PencilIcon className="w-4 h-4" />
-                      <span>تعديل الملف الشخصي</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2 items-center justify-start sm:justify-end">
+                       <button 
+                            onClick={() => setIsViewersModalOpen(true)} 
+                            className="flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!viewers || viewers.length === 0}
+                            aria-label="عرض من شاهد ملفك الشخصي"
+                       >
+                            <EyeIcon className="w-4 h-4" />
+                            <span>{viewers ? viewers.length : 0} مشاهدات</span>
+                       </button>
+                       <button onClick={onEditProfile} className="flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors">
+                           <PencilIcon className="w-4 h-4" />
+                           <span>تعديل الملف الشخصي</span>
+                       </button>
+                  </div>
               ) : (
                   <button 
                       onClick={() => onFollowToggle(user.name)}
-                      className={`w-full flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      className={`w-full sm:w-auto flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                           isFollowing 
                           ? 'text-slate-600 bg-slate-200 hover:bg-slate-300' 
                           : 'text-white bg-indigo-600 hover:bg-indigo-700'
@@ -86,6 +100,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
           </div>
         )}
       </div>
+      
+      {isCurrentUserProfile && (
+        <ProfileViewersModal
+            isOpen={isViewersModalOpen}
+            onClose={() => setIsViewersModalOpen(false)}
+            viewers={viewers || []}
+            onViewProfile={onViewProfile}
+        />
+      )}
     </div>
   );
 };
