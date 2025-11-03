@@ -1,6 +1,6 @@
 import React from 'react';
 import { Notification, NotificationType } from '../types';
-import { HeartIcon, CommentIcon, UserPlusIcon } from './Icons';
+import { HeartIcon, CommentIcon, UserPlusIcon, ChatBubbleLeftRightIcon } from './Icons';
 
 interface NotificationsProps {
   notifications: Notification[];
@@ -17,6 +17,8 @@ const NotificationIcon: React.FC<{ type: NotificationType }> = ({ type }) => {
       return <CommentIcon className={`${baseClass} text-sky-500`} />;
     case 'follow':
       return <UserPlusIcon className={`${baseClass} text-indigo-500`} />;
+    case 'message':
+      return <ChatBubbleLeftRightIcon className={`${baseClass} text-green-500`} />;
     default:
       return null;
   }
@@ -30,6 +32,8 @@ const getNotificationText = (notification: Notification): React.ReactNode => {
             return <><strong>{notification.actor.name}</strong> علّق على منشورك.</>;
         case 'follow':
             return <><strong>{notification.actor.name}</strong> بدأ بمتابعتك.</>;
+        case 'message':
+            return <><strong>{notification.actor.name}</strong> أرسل لك رسالة.</>;
     }
 }
 

@@ -113,6 +113,12 @@ const App: React.FC = () => {
     setPosts(prevPosts => prevPosts.map(post => { const updatedPost = { ...post }; if (post.author.name === oldUser.name) { updatedPost.author = updatedUser; } updatedPost.comments = post.comments.map(comment => { if (comment.author.name === oldUser.name) { return { ...comment, author: updatedUser }; } return comment; }); return updatedPost; }));
   };
 
+  const handleUpdateAvatar = (newAvatarUrl: string) => {
+    if (!users.currentUser) return;
+    const updatedUser = { ...users.currentUser, avatarUrl: newAvatarUrl };
+    handleUpdateProfile(updatedUser);
+  };
+
   const handleViewProfile = (user: User) => {
     if (users.currentUser && user.name !== users.currentUser.name) {
         const viewer = users.currentUser;
@@ -152,7 +158,6 @@ const App: React.FC = () => {
   const handleSendMessage = (recipient: User, text: string) => {
     if (!users.currentUser) return;
     
-    // Find the key for the recipient user in the users object
     const recipientKey = Object.keys(users).find(key => users[key].name === recipient.name);
     if (!recipientKey) return;
 
@@ -164,6 +169,27 @@ const App: React.FC = () => {
       timestamp: 'الآن',
     };
     setMessages(prev => [...prev, newMessage]);
+
+    // Simulate a reply and create a notification
+    setTimeout(() => {
+        const replyMessage: Message = {
+            id: Date.now() + 1,
+            senderKey: recipientKey,
+            receiverKey: 'currentUser',
+            text: 'شكراً لك! سألقي نظرة على ذلك.',
+            timestamp: 'الآن',
+        };
+        setMessages(prev => [...prev, replyMessage]);
+
+        const newNotification: Notification = {
+            id: Date.now() + 2,
+            type: 'message',
+            actor: recipient,
+            read: false,
+            timestamp: 'الآن',
+        };
+        setNotifications(prev => [newNotification, ...prev]);
+    }, 1500);
   };
 
   const handleFollowToggle = (userName: string) => {
@@ -173,7 +199,11 @@ const App: React.FC = () => {
   const handleNotificationNavigate = (notification: Notification) => {
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setIsNotificationsOpen(false);
-    handleViewProfile(notification.actor);
+    if (notification.type === 'message') {
+        handleGoToChat(notification.actor);
+    } else {
+        handleViewProfile(notification.actor);
+    }
   };
 
 
@@ -195,7 +225,7 @@ const App: React.FC = () => {
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
             }
             return null;
         case 'chat':

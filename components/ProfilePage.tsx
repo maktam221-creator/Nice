@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User, Post } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
 
 interface ProfilePageProps {
@@ -20,19 +20,56 @@ interface ProfilePageProps {
   following: string[];
   onFollowToggle: (userName: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
+  onUpdateAvatar: (newAvatarUrl: string) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          onUpdateAvatar(reader.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileSelect = () => fileInputRef.current?.click();
 
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-lg shadow-md">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex items-center space-x-6 rtl:space-x-reverse">
-                <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-slate-200 flex-shrink-0" />
+                <div className="relative flex-shrink-0">
+                    <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-slate-200" />
+                    {isCurrentUserProfile && (
+                        <>
+                            <button
+                                onClick={triggerFileSelect}
+                                className="absolute bottom-0 right-0 bg-slate-700 text-white rounded-full p-2 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                aria-label="تغيير صورة الملف الشخصي"
+                            >
+                                <CameraIcon className="w-5 h-5" />
+                            </button>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleAvatarChange}
+                                className="hidden"
+                                accept="image/*"
+                            />
+                        </>
+                    )}
+                </div>
                 <div className="flex-1">
                     <h2 className="text-3xl font-bold text-slate-800">{user.name}</h2>
                     <p className="text-slate-500 mt-1">{posts.length} {posts.length === 1 ? 'منشور' : 'منشورات'}</p>

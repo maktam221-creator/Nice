@@ -1,4 +1,3 @@
-
 export interface User {
   name: string;
   avatarUrl: string;
@@ -25,8 +24,8 @@ export interface Post {
   comments: Comment[];
   timestamp: string;
 }
-// FIX: Add Notification and NotificationType types.
-export type NotificationType = 'like' | 'comment' | 'follow';
+// Notification and NotificationType types.
+export type NotificationType = 'like' | 'comment' | 'follow' | 'message';
 
 export interface Notification {
   id: number;
