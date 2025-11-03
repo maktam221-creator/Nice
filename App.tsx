@@ -3,6 +3,7 @@ import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
 import ProfilePage from './components/ProfilePage';
 import EditProfileModal from './components/EditProfileModal';
+import SettingsModal from './components/SettingsModal';
 import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
 import Notifications from './components/Notifications';
@@ -19,6 +20,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [following, setFollowing] = useState<string[]>(['sara']);
   const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>({});
@@ -156,7 +158,7 @@ const App: React.FC = () => {
       return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={users.currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
     }
     if (currentPage === 'profile' && viewedProfileUser) {
-        return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} />
+        return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} />
     }
     return (
         <>
@@ -221,6 +223,7 @@ const App: React.FC = () => {
         </aside>
       </div>
       <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={users.currentUser} onSave={handleUpdateProfile} />
+      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
       <BottomNavBar
         currentPage={currentPage}
         searchQuery={searchQuery}

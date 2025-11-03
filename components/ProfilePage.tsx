@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, Post } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
 
 interface ProfilePageProps {
@@ -15,12 +15,13 @@ interface ProfilePageProps {
   currentUser: User;
   onViewProfile: (user: User) => void;
   onEditProfile: () => void;
+  onOpenSettings: () => void;
   following: string[];
   onFollowToggle: (userName: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, following, onFollowToggle, viewers }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, following, onFollowToggle, viewers }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
@@ -57,6 +58,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
                        <button onClick={onEditProfile} className="flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors">
                            <PencilIcon className="w-4 h-4" />
                            <span>تعديل الملف الشخصي</span>
+                       </button>
+                       <button onClick={onOpenSettings} className="flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors">
+                           <CogIcon className="w-4 h-4" />
+                           <span>الإعدادات</span>
                        </button>
                   </div>
               ) : (
