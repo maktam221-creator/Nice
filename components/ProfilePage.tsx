@@ -1,16 +1,17 @@
 
 
 import React, { useState, useRef } from 'react';
-import { User, Post } from '../types';
+import { User, Post, Reel } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
-import { uploadImage } from '../services/cloudinaryService';
+import { uploadMedia } from '../services/cloudinaryService';
 
 interface ProfilePageProps {
   user: User;
   posts: Post[];
+  reels: Reel[];
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
@@ -26,9 +27,10 @@ interface ProfilePageProps {
   onUpdateAvatar: (newAvatarUrl: string) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels'>('posts');
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
     if (file) {
       setIsUploadingAvatar(true);
       try {
-        const newAvatarUrl = await uploadImage(file);
+        const newAvatarUrl = await uploadMedia(file, 'image');
         onUpdateAvatar(newAvatarUrl);
       } catch (error) {
         console.error("Failed to upload avatar:", error);
@@ -86,7 +88,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
                 </div>
                 <div className="flex-1">
                     <h2 className="text-3xl font-bold text-slate-800">{user.name}</h2>
-                    <p className="text-slate-500 mt-1">{posts.length} {posts.length === 1 ? 'منشور' : 'منشورات'}</p>
+                    <div className="flex space-x-4 rtl:space-x-reverse text-slate-500 mt-2">
+                        <span><strong className="text-slate-700">{posts.length}</strong> منشورات</span>
+                        <span><strong className="text-slate-700">{reels.length}</strong> فيديوهات</span>
+                    </div>
                     {(user.bio || user.country) && (
                         <div className="mt-3 text-sm text-slate-600 border-t pt-3 space-y-1">
                             {user.bio && <p>{user.bio}</p>}
@@ -146,25 +151,53 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
       {isCurrentUserProfile && <CreatePost onAddPost={onAddPost} currentUser={currentUser} />}
 
       <div>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">{isCurrentUserProfile ? 'منشوراتك' : `منشورات ${user.name}`}</h3>
-        {posts.length > 0 ? (
-          <div className="space-y-6">
-            {posts.map(post => (
-              <PostCard 
-                key={post.id} 
-                post={post} 
-                onLike={onLike} 
-                onAddComment={onAddComment}
-                onShare={onShare}
-                currentUser={currentUser} 
-                onViewProfile={onViewProfile}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
-            <p>لا توجد منشورات لعرضها.</p>
-          </div>
+        <div className="border-b border-slate-200 mb-6">
+            <nav className="-mb-px flex justify-center space-x-8 rtl:space-x-reverse" aria-label="Tabs">
+                <button
+                    onClick={() => setActiveTab('posts')}
+                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${activeTab === 'posts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                    <HomeIcon className="w-5 h-5" />
+                    <span>المنشورات</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('reels')}
+                    className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${activeTab === 'reels' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                >
+                    <VideoCameraIcon className="w-5 h-5" />
+                    <span>الفيديوهات</span>
+                </button>
+            </nav>
+        </div>
+        
+        {activeTab === 'posts' && (
+            posts.length > 0 ? (
+                <div className="space-y-6">
+                    {posts.map(post => (
+                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} currentUser={currentUser} onViewProfile={onViewProfile} />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
+                    <p>لا توجد منشورات لعرضها.</p>
+                </div>
+            )
+        )}
+
+        {activeTab === 'reels' && (
+            reels.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                    {reels.map(reel => (
+                        <div key={reel.id} className="aspect-w-9 aspect-h-16 bg-slate-200 rounded-md overflow-hidden">
+                           <video src={reel.videoUrl} className="w-full h-full object-cover" />
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
+                    <p>لا توجد فيديوهات لعرضها.</p>
+                </div>
+            )
         )}
       </div>
       

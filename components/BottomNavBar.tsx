@@ -1,8 +1,8 @@
 import React from 'react';
-import { HomeIcon, SearchIcon, BellIcon, UserIcon, ChatBubbleLeftRightIcon } from './Icons';
+import { HomeIcon, BellIcon, UserIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from './Icons';
 import { User } from '../types';
 
-type Page = 'home' | 'profile' | 'chat';
+type Page = 'home' | 'profile' | 'chat' | 'shorts';
 
 interface BottomNavBarProps {
     currentPage: Page;
@@ -11,7 +11,7 @@ interface BottomNavBarProps {
     currentUser: User;
     unreadCount: number;
     onHomeClick: () => void;
-    onSearchClick: () => void;
+    onShortsClick: () => void;
     onNotificationsClick: () => void;
     onProfileClick: () => void;
     onChatClick: () => void;
@@ -24,7 +24,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
     currentUser, 
     unreadCount, 
     onHomeClick, 
-    onSearchClick, 
+    onShortsClick, 
     onNotificationsClick, 
     onProfileClick,
     onChatClick
@@ -32,7 +32,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
     
     const navItems = [
         { name: 'الرئيسية', icon: HomeIcon, action: onHomeClick, active: currentPage === 'home' && !searchQuery },
-        { name: 'بحث', icon: SearchIcon, action: onSearchClick, active: !!searchQuery },
+        { name: 'فيديوهات', icon: VideoCameraIcon, action: onShortsClick, active: currentPage === 'shorts' },
         { name: 'الدردشات', icon: ChatBubbleLeftRightIcon, action: onChatClick, active: currentPage === 'chat' },
         { name: 'الإشعارات', icon: BellIcon, action: onNotificationsClick, active: false, badge: unreadCount },
         { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUser?.name === currentUser.name },

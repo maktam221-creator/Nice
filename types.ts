@@ -24,6 +24,20 @@ export interface Post {
   comments: Comment[];
   timestamp: string;
 }
+
+export interface Reel {
+  id: number;
+  author: User;
+  videoUrl: string;
+  caption: string;
+  likes: number;
+  shares: number;
+  isLiked: boolean;
+  comments: Comment[];
+  timestamp: string;
+  music?: string;
+}
+
 // Notification and NotificationType types.
 export type NotificationType = 'like' | 'comment' | 'follow' | 'message';
 

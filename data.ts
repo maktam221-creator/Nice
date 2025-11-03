@@ -1,4 +1,4 @@
-import { User, Post, Notification, Message, Story } from './types';
+import { User, Post, Notification, Message, Story, Reel } from './types';
 
 type ProfileView = { viewer: User; timestamp: string };
 
@@ -16,6 +16,48 @@ export const initialPosts: Post[] = [
   { id: 2, author: initialUsers.ahmed, text: 'أنهيت للتو قراءة كتاب رائع. أوصي به بشدة لكل محبي الخيال العلمي.', likes: 8, shares: 2, isLiked: true, timestamp: 'قبل ساعة', comments: [], },
   { id: 3, author: initialUsers.currentUser, text: 'تجربة وصفة جديدة للعشاء الليلة. أتمنى أن تنجح!', likes: 2, shares: 1, isLiked: false, timestamp: 'قبل 3 ساعات', comments: [], },
 ];
+
+export const initialReels: Reel[] = [
+  {
+    id: 1,
+    author: initialUsers.youssef,
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    caption: 'Just having some fun! 😂 #fun #dayout',
+    likes: 120,
+    shares: 12,
+    isLiked: false,
+    comments: [],
+    timestamp: 'قبل يومين',
+    music: 'Original Audio by youssef',
+  },
+  {
+    id: 2,
+    author: initialUsers.layla,
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    caption: 'Chilling with the big bunny 🌳 #nature #animation',
+    likes: 256,
+    shares: 30,
+    isLiked: true,
+    comments: [
+        { id: 1, author: initialUsers.sara, text: 'So cute!' }
+    ],
+    timestamp: 'قبل 4 أيام',
+    music: 'Blender Foundation - Big Buck Bunny',
+  },
+  {
+    id: 3,
+    author: initialUsers.ahmed,
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    caption: 'This is so surreal and cool.',
+    likes: 541,
+    shares: 64,
+    isLiked: false,
+    comments: [],
+    timestamp: 'قبل أسبوع',
+    music: 'Blender Foundation - Elephant\'s Dream',
+  }
+];
+
 
 export const initialProfileViews: Record<string, ProfileView[]> = {
   [initialUsers.currentUser.name]: [

@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { enhancePost } from '../services/geminiService';
 import { SparklesIcon, PhotoIcon, XCircleIcon } from './Icons';
-import { uploadImage } from '../services/cloudinaryService';
+import { uploadMedia } from '../services/cloudinaryService';
 
 interface CreatePostProps {
   onAddPost: (text: string, imageUrl?: string) => void;
@@ -48,7 +48,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onAddPost, currentUser }) => {
       setIsUploading(true);
       setImage(null);
       try {
-        const imageUrl = await uploadImage(file);
+        const imageUrl = await uploadMedia(file, 'image');
         setImage(imageUrl);
       } catch (error) {
         console.error("Failed to upload image:", error);

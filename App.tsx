@@ -12,16 +12,19 @@ import ChatPage from './components/ChatPage';
 import StoriesTray from './components/StoriesTray';
 import StoryCreatorModal from './components/StoryCreatorModal';
 import StoryViewer from './components/StoryViewer';
-import { Post, User, Notification, Message, Story } from './types';
-import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories } from './data';
-import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon } from './components/Icons';
+import ShortsPage from './components/ShortsPage';
+import CreateReelModal from './components/CreateReelModal';
+import { Post, User, Notification, Message, Story, Reel } from './types';
+import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories, initialReels } from './data';
+import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from './components/Icons';
 
 type ProfileView = { viewer: User; timestamp: string };
-type Page = 'home' | 'profile' | 'chat';
+type Page = 'home' | 'profile' | 'chat' | 'shorts';
 
 const App: React.FC = () => {
   const [users, setUsers] = useState<Record<string, User>>({});
   const [posts, setPosts] = useState<Post[]>([]);
+  const [reels, setReels] = useState<Reel[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
@@ -35,6 +38,7 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
   const [isStoryCreatorOpen, setIsStoryCreatorOpen] = useState(false);
+  const [isReelCreatorOpen, setIsReelCreatorOpen] = useState(false);
   const [viewingStoryUserKey, setViewingStoryUserKey] = useState<string | null>(null);
 
 
@@ -45,6 +49,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setUsers(initialUsers);
     setPosts(initialPosts);
+    setReels(initialReels);
     setProfileViews(initialProfileViews);
     setNotifications(initialNotifications);
     setMessages(initialMessages);
@@ -88,6 +93,37 @@ const App: React.FC = () => {
     if (!users.currentUser) return;
     setPosts( posts.map((post) => { if (post.id === postId) { const newComment = { id: Date.now(), author: users.currentUser, text, }; return { ...post, comments: [...post.comments, newComment] }; } return post; }) );
   };
+
+  const handleLikeReel = (reelId: number) => {
+    setReels( reels.map((reel) => { if (reel.id === reelId) { const isLiked = !reel.isLiked; return { ...reel, isLiked: isLiked, likes: isLiked ? reel.likes + 1 : reel.likes - 1, }; } return reel; }) );
+  };
+
+  const handleShareReel = (reelId: number) => {
+    setReels( reels.map((reel) => { if (reel.id === reelId) { return { ...reel, shares: reel.shares + 1 }; } return reel; }) );
+  };
+
+  const handleAddReelComment = (reelId: number, text: string) => {
+    if (!users.currentUser) return;
+    setReels( reels.map((reel) => { if (reel.id === reelId) { const newComment = { id: Date.now(), author: users.currentUser, text, }; return { ...reel, comments: [...reel.comments, newComment] }; } return reel; }) );
+  };
+
+  const handleAddReel = (videoUrl: string, caption: string) => {
+    if (!users.currentUser) return;
+    const newReel: Reel = {
+      id: Date.now(),
+      author: users.currentUser,
+      videoUrl,
+      caption,
+      likes: 0,
+      shares: 0,
+      isLiked: false,
+      timestamp: 'الآن',
+      comments: [],
+      music: 'Original Audio'
+    };
+    setReels(prev => [newReel, ...prev]);
+  };
+
 
   const handleUpdateProfile = (updatedUser: User) => {
     const oldUser = users.currentUser;
@@ -139,6 +175,12 @@ const App: React.FC = () => {
     setChatTargetUser(user || null);
   };
   
+  const handleGoToShorts = () => {
+    setCurrentPage('shorts');
+    setViewedProfileUser(null);
+    setSearchQuery('');
+  };
+
   const handleSendMessage = (recipient: User, text: string) => {
     if (!users.currentUser) return;
     
@@ -218,6 +260,7 @@ const App: React.FC = () => {
   };
 
   const userPosts = posts.filter(post => post.author.name === viewedProfileUser?.name);
+  const userReels = reels.filter(reel => reel.author.name === viewedProfileUser?.name);
   const lowercasedQuery = searchQuery.trim().toLowerCase();
   const filteredPosts = searchQuery ? posts.filter(post => post.text.toLowerCase().includes(lowercasedQuery) || post.author.name.toLowerCase().includes(lowercasedQuery)) : [];
   const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== users.currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
@@ -286,11 +329,13 @@ const App: React.FC = () => {
     switch (currentPage) {
         case 'profile':
             if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} onUpdateAvatar={handleUpdateAvatar} />
             }
             return null;
         case 'chat':
             return <ChatPage currentUser={users.currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} onViewProfile={handleViewProfile} />;
+        case 'shorts':
+            return <ShortsPage reels={reels} currentUser={users.currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsReelCreatorOpen(true)} onViewProfile={handleViewProfile} />;
         case 'home':
         default:
             return (
@@ -338,6 +383,9 @@ const App: React.FC = () => {
                 <button onClick={handleGoHome} aria-label="الرئيسية" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                   <HomeIcon className={`w-7 h-7 ${currentPage === 'home' && !searchQuery ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
+                <button onClick={handleGoToShorts} aria-label="فيديوهات" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                  <VideoCameraIcon className={`w-7 h-7 ${currentPage === 'shorts' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                </button>
                 <button onClick={() => handleGoToChat()} aria-label="الدردشات" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                   <ChatBubbleLeftRightIcon className={`w-7 h-7 ${currentPage === 'chat' ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
@@ -372,6 +420,11 @@ const App: React.FC = () => {
         onClose={() => setIsStoryCreatorOpen(false)}
         onAddStory={handleAddStory}
       />
+      <CreateReelModal
+        isOpen={isReelCreatorOpen}
+        onClose={() => setIsReelCreatorOpen(false)}
+        onAddReel={handleAddReel}
+      />
       {viewingStoryUserKey && viewingUserStories.length > 0 && (
         <StoryViewer
           user={users[viewingStoryUserKey]}
@@ -391,7 +444,7 @@ const App: React.FC = () => {
         onHomeClick={handleGoHome}
         onProfileClick={handleGoToMyProfile}
         onNotificationsClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-        onSearchClick={() => searchInputRef.current?.focus()}
+        onShortsClick={handleGoToShorts}
         onChatClick={() => handleGoToChat()}
       />
     </div>

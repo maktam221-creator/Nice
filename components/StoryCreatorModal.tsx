@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { enhancePost } from '../services/geminiService';
 import { PhotoIcon, SparklesIcon, XIcon } from './Icons';
-import { uploadImage } from '../services/cloudinaryService';
+import { uploadMedia } from '../services/cloudinaryService';
 
 interface StoryCreatorModalProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({ isOpen, onClose, 
       setImage(null);
       setStoryType('image');
       try {
-        const imageUrl = await uploadImage(file);
+        const imageUrl = await uploadMedia(file, 'image');
         setImage(imageUrl);
       } catch (error) {
         console.error("Failed to upload story image:", error);
