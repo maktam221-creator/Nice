@@ -8,11 +8,12 @@ import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
 import Notifications from './components/Notifications';
 import BottomNavBar from './components/BottomNavBar';
-import { Post, User, Notification } from './types';
-import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon } from './components/Icons';
+import ChatPage from './components/ChatPage'; // Import ChatPage
+import { Post, User, Notification, Message } from './types';
+import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon } from './components/Icons';
 
 type ProfileView = { viewer: User; timestamp: string };
-type Page = 'home' | 'profile';
+type Page = 'home' | 'profile' | 'chat';
 
 const App: React.FC = () => {
   const [users, setUsers] = useState<Record<string, User>>({});
@@ -26,6 +27,8 @@ const App: React.FC = () => {
   const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -55,6 +58,13 @@ const App: React.FC = () => {
         { id: 3, type: 'comment', actor: initialUsersData.fatima, read: true, timestamp: 'قبل ساعة' },
     ];
     setNotifications(initialNotifications);
+
+    const initialMessages: Message[] = [
+        { id: 1, senderKey: 'sara', receiverKey: 'currentUser', text: 'مرحباً! كيف حالك؟', timestamp: 'قبل 10 دقائق' },
+        { id: 2, senderKey: 'currentUser', receiverKey: 'sara', text: 'أهلاً سارة! أنا بخير، شكراً لك. ماذا عنك؟', timestamp: 'قبل 8 دقائق' },
+        { id: 3, senderKey: 'sara', receiverKey: 'currentUser', text: 'بخير أيضاً. هل رأيت المنشور الجديد؟', timestamp: 'قبل 5 دقائق' },
+    ];
+    setMessages(initialMessages);
   }, []);
   
   useEffect(() => {
@@ -131,6 +141,30 @@ const App: React.FC = () => {
     setViewedProfileUser(null);
     setSearchQuery('');
   };
+  
+  const handleGoToChat = (user?: User) => {
+    setCurrentPage('chat');
+    setViewedProfileUser(null);
+    setSearchQuery('');
+    setChatTargetUser(user || null);
+  };
+  
+  const handleSendMessage = (recipient: User, text: string) => {
+    if (!users.currentUser) return;
+    
+    // Find the key for the recipient user in the users object
+    const recipientKey = Object.keys(users).find(key => users[key].name === recipient.name);
+    if (!recipientKey) return;
+
+    const newMessage: Message = {
+      id: Date.now(),
+      senderKey: 'currentUser',
+      receiverKey: recipientKey,
+      text,
+      timestamp: 'الآن',
+    };
+    setMessages(prev => [...prev, newMessage]);
+  };
 
   const handleFollowToggle = (userName: string) => {
     setFollowing(prev => { const isFollowing = prev.includes(userName); if (isFollowing) { return prev.filter(name => name !== userName); } else { return [...prev, userName]; } });
@@ -148,6 +182,7 @@ const App: React.FC = () => {
   const filteredPosts = searchQuery ? posts.filter(post => post.text.toLowerCase().includes(lowercasedQuery) || post.author.name.toLowerCase().includes(lowercasedQuery)) : [];
   const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.name !== users.currentUser?.name && user.name.toLowerCase().includes(lowercasedQuery)) : [];
   const unreadCount = notifications.filter(n => !n.read).length;
+  const followingUsers = following.map(key => users[key]).filter(Boolean);
 
   if (!users.currentUser) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -157,17 +192,25 @@ const App: React.FC = () => {
     if (searchQuery) {
       return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={users.currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
     }
-    if (currentPage === 'profile' && viewedProfileUser) {
-        return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} />
+    switch (currentPage) {
+        case 'profile':
+            if (viewedProfileUser) {
+                return <ProfilePage user={viewedProfileUser} posts={userPosts} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={users.currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.name]} />
+            }
+            return null;
+        case 'chat':
+            return <ChatPage currentUser={users.currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} onViewProfile={handleViewProfile} />;
+        case 'home':
+        default:
+            return (
+                <>
+                    <CreatePost onAddPost={handleAddPost} currentUser={users.currentUser} />
+                    <div className="mt-8">
+                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={users.currentUser} onViewProfile={handleViewProfile} /> ))}
+                    </div>
+                </>
+            );
     }
-    return (
-        <>
-            <CreatePost onAddPost={handleAddPost} currentUser={users.currentUser} />
-            <div className="mt-8">
-              {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} currentUser={users.currentUser} onViewProfile={handleViewProfile} /> ))}
-            </div>
-        </>
-    );
   }
 
   return (
@@ -197,6 +240,9 @@ const App: React.FC = () => {
             <div className="hidden lg:flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
                 <button onClick={handleGoHome} aria-label="الرئيسية" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                   <HomeIcon className={`w-7 h-7 ${currentPage === 'home' && !searchQuery ? 'text-indigo-600' : 'text-slate-500'}`} />
+                </button>
+                <button onClick={() => handleGoToChat()} aria-label="الدردشات" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
+                  <ChatBubbleLeftRightIcon className={`w-7 h-7 ${currentPage === 'chat' ? 'text-indigo-600' : 'text-slate-500'}`} />
                 </button>
                 <button onClick={handleGoToMyProfile} aria-label="الملف الشخصي" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                   <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.name === users.currentUser.name ? 'text-indigo-600' : 'text-slate-500'}`} />
@@ -234,6 +280,7 @@ const App: React.FC = () => {
         onProfileClick={handleGoToMyProfile}
         onNotificationsClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
         onSearchClick={() => searchInputRef.current?.focus()}
+        onChatClick={() => handleGoToChat()}
       />
     </div>
   );

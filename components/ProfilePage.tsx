@@ -16,12 +16,13 @@ interface ProfilePageProps {
   onViewProfile: (user: User) => void;
   onEditProfile: () => void;
   onOpenSettings: () => void;
+  onGoToChat: (user: User) => void;
   following: string[];
   onFollowToggle: (userName: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, following, onFollowToggle, viewers }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddComment, onShare, onAddPost, currentUser, onViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const isCurrentUserProfile = user.name === currentUser.name;
   const isFollowing = following.includes(user.name);
@@ -65,17 +66,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, onLike, onAddCom
                        </button>
                   </div>
               ) : (
-                  <button 
-                      onClick={() => onFollowToggle(user.name)}
-                      className={`w-full sm:w-auto flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                          isFollowing 
-                          ? 'text-slate-600 bg-slate-200 hover:bg-slate-300' 
-                          : 'text-white bg-indigo-600 hover:bg-indigo-700'
-                      }`}
-                  >
-                      <UserPlusIcon className="w-4 h-4" />
-                      <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <button 
+                        onClick={() => onFollowToggle(user.name)}
+                        className={`w-full sm:w-auto flex items-center justify-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                            isFollowing 
+                            ? 'text-slate-600 bg-slate-200 hover:bg-slate-300' 
+                            : 'text-white bg-indigo-600 hover:bg-indigo-700'
+                        }`}
+                    >
+                        <UserPlusIcon className="w-4 h-4" />
+                        <span>{isFollowing ? 'إلغاء المتابعة' : 'متابعة'}</span>
+                    </button>
+                    {isFollowing && (
+                        <button 
+                            onClick={() => onGoToChat(user)}
+                            className="w-full sm:w-auto px-4 py-2 text-sm font-medium rounded-md transition-colors text-indigo-600 bg-indigo-100 hover:bg-indigo-200"
+                        >
+                            رسالة
+                        </button>
+                    )}
+                  </div>
               )}
             </div>
         </div>

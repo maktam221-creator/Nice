@@ -34,3 +34,11 @@ export interface Notification {
   read: boolean;
   timestamp: string;
 }
+
+export interface Message {
+  id: number;
+  senderKey: string;
+  receiverKey: string;
+  text: string;
+  timestamp: string;
+}

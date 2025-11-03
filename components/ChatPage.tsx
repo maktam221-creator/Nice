@@ -1,0 +1,207 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Message } from '../types';
+import { PaperAirplaneIcon, LockClosedIcon, LockOpenIcon } from './Icons';
+
+interface ChatPageProps {
+  currentUser: User;
+  allUsers: Record<string, User>;
+  messages: Message[];
+  onSendMessage: (recipient: User, text: string) => void;
+  followingUsers: User[];
+  initialTargetUser: User | null;
+  onClearTargetUser: () => void;
+  onViewProfile: (user: User) => void;
+}
+
+const ChatPage: React.FC<ChatPageProps> = ({
+  currentUser,
+  allUsers,
+  messages,
+  onSendMessage,
+  followingUsers,
+  initialTargetUser,
+  onClearTargetUser,
+  onViewProfile
+}) => {
+  const [selectedUser, setSelectedUser] = useState<User | null>(initialTargetUser);
+  const [messageText, setMessageText] = useState('');
+  const [lockedChats, setLockedChats] = useState<string[]>(['sara']); // Add state for locked chats, lock 'sara' by default
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialTargetUser) {
+      setSelectedUser(initialTargetUser);
+      onClearTargetUser();
+    }
+  }, [initialTargetUser, onClearTargetUser]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedUser]);
+
+  const getUserKey = (user: User | null): string | null => {
+    if (!user) return null;
+    return Object.keys(allUsers).find(key => allUsers[key].name === user.name) || null;
+  };
+
+  const handleToggleLock = (user: User) => {
+    const userKey = getUserKey(user);
+    if (!userKey) return;
+
+    setLockedChats(prev => 
+      prev.includes(userKey) 
+        ? prev.filter(key => key !== userKey) 
+        : [...prev, userKey]
+    );
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (messageText.trim() && selectedUser) {
+      onSendMessage(selectedUser, messageText);
+      setMessageText('');
+    }
+  };
+  
+  const getConversation = () => {
+    if (!selectedUser) return [];
+    
+    const selectedUserKey = getUserKey(selectedUser);
+
+    return messages.filter(
+      (msg) =>
+        (msg.senderKey === 'currentUser' && msg.receiverKey === selectedUserKey) ||
+        (msg.senderKey === selectedUserKey && msg.receiverKey === 'currentUser')
+    ).sort((a, b) => a.id - b.id);
+  };
+
+  const conversation = getConversation();
+  
+  const selectedUserKey = getUserKey(selectedUser);
+  const isSelectedChatLocked = selectedUserKey ? lockedChats.includes(selectedUserKey) : false;
+
+  return (
+    <div className="bg-white rounded-lg shadow-md h-[calc(100vh-160px)] flex flex-col md:flex-row">
+      {/* Conversation List */}
+      <div className="w-full md:w-1/3 border-l rtl:border-l-0 rtl:border-r border-slate-200 flex flex-col">
+        <div className="p-4 border-b">
+          <h2 className="text-xl font-bold text-slate-800">الدردشات</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {followingUsers.length > 0 ? (
+            followingUsers.map((user) => {
+              const userKey = getUserKey(user);
+              const isLocked = userKey ? lockedChats.includes(userKey) : false;
+              return (
+                <button
+                  key={user.name}
+                  onClick={() => setSelectedUser(user)}
+                  className={`w-full text-right p-4 flex items-center justify-between space-x-4 rtl:space-x-reverse transition-colors ${
+                    selectedUser?.name === user.name ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                    <img src={user.avatarUrl} alt={user.name} className="w-12 h-12 rounded-full" />
+                    <div>
+                      <p className="font-semibold text-slate-800">{user.name}</p>
+                    </div>
+                  </div>
+                  {isLocked && <LockClosedIcon className="w-5 h-5 text-slate-400 shrink-0" />}
+                </button>
+              );
+            })
+          ) : (
+             <div className="p-6 text-center text-slate-500">
+                <p>تابع المستخدمين لبدء الدردشة.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Chat Window */}
+      <div className="flex-1 flex flex-col">
+        {selectedUser ? (
+          <>
+            <div className="p-4 border-b flex items-center justify-between shadow-sm">
+              <button onClick={() => onViewProfile(selectedUser)} className="flex items-center space-x-3 rtl:space-x-reverse group">
+                  <img src={selectedUser.avatarUrl} alt={selectedUser.name} className="w-10 h-10 rounded-full" />
+                  <span className="font-bold text-slate-800 group-hover:underline">{selectedUser.name}</span>
+              </button>
+              <button 
+                onClick={() => handleToggleLock(selectedUser)}
+                className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                aria-label={isSelectedChatLocked ? 'فتح قفل الدردشة' : 'قفل الدردشة'}
+              >
+                {isSelectedChatLocked 
+                    ? <LockClosedIcon className="w-6 h-6 text-slate-500" /> 
+                    : <LockOpenIcon className="w-6 h-6 text-slate-500" />
+                }
+              </button>
+            </div>
+            {isSelectedChatLocked ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 bg-slate-50 p-4">
+                    <LockClosedIcon className="w-16 h-16 text-slate-300 mb-4" />
+                    <h3 className="text-xl font-semibold">الدردشة مقفلة</h3>
+                    <p className="mb-4">هذه المحادثة مقفلة للحفاظ على خصوصيتك.</p>
+                    <button 
+                        onClick={() => handleToggleLock(selectedUser)}
+                        className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                        فتح القفل
+                    </button>
+                </div>
+            ) : (
+                <div className="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-4">
+                  {conversation.map((msg) => {
+                     const isSentByCurrentUser = msg.senderKey === 'currentUser';
+                     const sender = allUsers[msg.senderKey];
+                     return (
+                        <div key={msg.id} className={`flex items-end gap-3 ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                           {!isSentByCurrentUser && <img src={sender.avatarUrl} alt={sender.name} className="w-8 h-8 rounded-full"/>}
+                           <div>
+                             <div className={`w-fit max-w-xs lg:max-w-md p-3 rounded-2xl ${isSentByCurrentUser ? 'bg-indigo-600 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
+                               <p className="text-sm">{msg.text}</p>
+                             </div>
+                             <p className={`text-xs text-slate-400 mt-1 px-1 ${isSentByCurrentUser ? 'text-left' : 'text-right'}`}>{msg.timestamp}</p>
+                           </div>
+                        </div>
+                     );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+            )}
+            <div className="p-4 bg-white border-t">
+              <form onSubmit={handleSendMessage} className="flex items-center space-x-3 rtl:space-x-reverse">
+                <input
+                  type="text"
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder={isSelectedChatLocked ? 'الدردشة مقفلة' : 'اكتب رسالتك...'}
+                  className="w-full p-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                  disabled={isSelectedChatLocked}
+                />
+                <button
+                  type="submit"
+                  className="p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors flex-shrink-0"
+                  disabled={!messageText.trim() || isSelectedChatLocked}
+                  aria-label="إرسال"
+                >
+                  <PaperAirplaneIcon className="w-6 h-6" />
+                </button>
+              </form>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-center text-slate-500 bg-slate-50">
+            <div>
+              <h3 className="text-xl font-semibold">اختر محادثة</h3>
+              <p>ابدأ الدردشة مع متابعيك.</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ChatPage;

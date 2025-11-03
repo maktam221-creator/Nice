@@ -1,8 +1,8 @@
 import React from 'react';
-import { HomeIcon, SearchIcon, BellIcon, UserIcon } from './Icons';
+import { HomeIcon, SearchIcon, BellIcon, UserIcon, ChatBubbleLeftRightIcon } from './Icons';
 import { User } from '../types';
 
-type Page = 'home' | 'profile';
+type Page = 'home' | 'profile' | 'chat';
 
 interface BottomNavBarProps {
     currentPage: Page;
@@ -14,6 +14,7 @@ interface BottomNavBarProps {
     onSearchClick: () => void;
     onNotificationsClick: () => void;
     onProfileClick: () => void;
+    onChatClick: () => void;
 }
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ 
@@ -25,12 +26,14 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
     onHomeClick, 
     onSearchClick, 
     onNotificationsClick, 
-    onProfileClick 
+    onProfileClick,
+    onChatClick
 }) => {
     
     const navItems = [
         { name: 'الرئيسية', icon: HomeIcon, action: onHomeClick, active: currentPage === 'home' && !searchQuery },
         { name: 'بحث', icon: SearchIcon, action: onSearchClick, active: !!searchQuery },
+        { name: 'الدردشات', icon: ChatBubbleLeftRightIcon, action: onChatClick, active: currentPage === 'chat' },
         { name: 'الإشعارات', icon: BellIcon, action: onNotificationsClick, active: false, badge: unreadCount },
         { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUser?.name === currentUser.name },
     ];
