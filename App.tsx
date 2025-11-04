@@ -8,6 +8,7 @@ import EditPostModal from './components/EditPostModal';
 import SettingsModal from './components/SettingsModal';
 import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
 import Notifications from './components/Notifications';
 import BottomNavBar from './components/BottomNavBar';
 import ChatPage from './components/ChatPage';
@@ -440,11 +441,14 @@ const App: React.FC = () => {
       return { users: [], posts: [] };
     }
     const lowercasedQuery = searchQuery.toLowerCase();
-    const filteredUsers = Object.values(users).filter(
-      // FIX: Explicitly type `user` as `any` to prevent it from being inferred as `unknown`.
-      // The `loadState` function can return `any` which can cause this inference issue.
+    // FIX: The type of `user` was being inferred as `unknown`. The original chained `.filter()` call caused a 
+    // type inference issue. By splitting the filter chain, we allow TypeScript to correctly infer that 
+    // `validUsers` is an array of `User` after the type guard is applied.
+    const validUsers: User[] = Object.values(users).filter(
       (user: any): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
-    ).filter(user =>
+    );
+
+    const filteredUsers = validUsers.filter(user =>
       user.name.toLowerCase().includes(lowercasedQuery) && user.uid !== currentUser?.uid
     );
     const filteredPosts = posts.filter(post =>
@@ -577,7 +581,7 @@ const App: React.FC = () => {
   return (
     <div className="bg-slate-100 min-h-screen pb-16 lg:pb-0">
       <header className="bg-white shadow-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-2 sm:gap-4">
             <button onClick={handleGoHome} className="shrink-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-indigo-600">Maydan</h1>
             </button>
@@ -622,10 +626,33 @@ const App: React.FC = () => {
             </div>
         )}
       </header>
+      
+      <div className="max-w-7xl mx-auto flex justify-center gap-8 px-4 py-6">
+        <aside className="hidden lg:block w-80 flex-shrink-0">
+          <div className="sticky top-24">
+            <Sidebar
+                currentUser={currentUser}
+                allUsers={Object.values(users).filter((user): user is User => !!user && !!user.uid)}
+                following={following}
+                onViewProfile={handleViewProfile}
+                onFollowToggle={handleFollowToggle}
+            />
+          </div>
+        </aside>
 
-      <main className="max-w-xl mx-auto p-4 lg:py-6">
+        <main className="w-full max-w-xl">
           {renderPage()}
-      </main>
+        </main>
+        
+        <aside className="hidden lg:block w-80 flex-shrink-0">
+            <div className="sticky top-24">
+                <RightSidebar
+                    followingUsers={followingUsers}
+                    onViewProfile={handleViewProfile}
+                />
+            </div>
+        </aside>
+      </div>
       
       <BottomNavBar 
         currentPage={currentPage} 
