@@ -8,7 +8,6 @@ import EditPostModal from './components/EditPostModal';
 import SettingsModal from './components/SettingsModal';
 import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
-import RightSidebar from './components/RightSidebar';
 import Notifications from './components/Notifications';
 import BottomNavBar from './components/BottomNavBar';
 import ChatPage from './components/ChatPage';
@@ -170,7 +169,7 @@ const App: React.FC = () => {
 
   const handleAddPost = (text: string, imageUrl?: string) => {
     if (!currentUser) return;
-    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, isSaved: false, timestamp: new Date().toISOString(), comments: [], };
+    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, isSaved: false, timestamp: "الآن", comments: [], };
     setPosts([newPost, ...posts]);
   };
 
@@ -245,7 +244,7 @@ const App: React.FC = () => {
       likes: 0,
       shares: 0,
       isLiked: false,
-      timestamp: new Date().toISOString(),
+      timestamp: "الآن",
       comments: [],
       music: 'Original Audio'
     };
@@ -274,12 +273,12 @@ const App: React.FC = () => {
         const viewer = currentUser;
         setProfileViews(prev => {
             const viewsForUser = prev[user.uid] || [];
-            // Remove any previous view from the same viewer to update their position and timestamp
-            const otherViews = viewsForUser.filter(view => view.viewer.uid !== viewer.uid);
-            const newView: ProfileView = { viewer, timestamp: new Date().toISOString() };
-            // Add the new/updated view to the top of the list
-            const newViews = [newView, ...otherViews];
-            return { ...prev, [user.uid]: newViews };
+            // Check if the current user is already the last viewer
+            if (viewsForUser.length > 0 && viewsForUser[0].viewer.uid === viewer.uid) {
+                return prev; // Don't add if they are the last viewer
+            }
+            const newView: ProfileView = { viewer, timestamp: "الآن" };
+            return { ...prev, [user.uid]: [newView, ...viewsForUser] };
         });
     }
     setViewedProfileUser(user);
@@ -321,7 +320,7 @@ const App: React.FC = () => {
       senderKey: currentUser.uid,
       receiverKey: recipient.uid,
       text,
-      timestamp: new Date().toISOString(),
+      timestamp: "الآن",
     };
     setMessages(prev => [...prev, newMessage]);
 
@@ -331,7 +330,7 @@ const App: React.FC = () => {
             senderKey: recipient.uid,
             receiverKey: currentUser.uid,
             text: 'شكراً لك! سألقي نظرة على ذلك.',
-            timestamp: new Date().toISOString(),
+            timestamp: "الآن",
         };
         setMessages(prev => [...prev, replyMessage]);
 
@@ -340,7 +339,7 @@ const App: React.FC = () => {
             type: 'message',
             actor: recipient,
             read: false,
-            timestamp: new Date().toISOString(),
+            timestamp: "الآن",
         };
         setNotifications(prev => [newNotification, ...prev]);
     }, 1500);
@@ -442,7 +441,9 @@ const App: React.FC = () => {
     }
     const lowercasedQuery = searchQuery.toLowerCase();
     const filteredUsers = Object.values(users).filter(
-      (user): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
+      // FIX: Explicitly type `user` as `any` to prevent it from being inferred as `unknown`.
+      // The `loadState` function can return `any` which can cause this inference issue.
+      (user: any): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
     ).filter(user =>
       user.name.toLowerCase().includes(lowercasedQuery) && user.uid !== currentUser?.uid
     );
@@ -620,25 +621,8 @@ const App: React.FC = () => {
         )}
       </header>
 
-      <main className="max-w-6xl mx-auto p-4 lg:py-6 grid grid-cols-12 gap-8">
-        <aside className="col-span-3 hidden lg:block">
-           <Sidebar
-              currentUser={currentUser}
-              allUsers={Object.values(users)}
-              following={following}
-              onViewProfile={handleViewProfile}
-              onFollowToggle={handleFollowToggle}
-            />
-        </aside>
-        <div className="col-span-12 lg:col-span-6">
-            {renderPage()}
-        </div>
-        <aside className="col-span-3 hidden lg:block">
-            <RightSidebar
-                followingUsers={followingUsers}
-                onViewProfile={handleViewProfile}
-            />
-        </aside>
+      <main className="max-w-xl mx-auto p-4 lg:py-6">
+          {renderPage()}
       </main>
       
       <BottomNavBar 

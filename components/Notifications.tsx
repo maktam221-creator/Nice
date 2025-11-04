@@ -1,7 +1,6 @@
 import React from 'react';
 import { Notification, NotificationType } from '../types';
 import { HeartIcon, CommentIcon, UserPlusIcon, ChatBubbleLeftRightIcon } from './Icons';
-import { formatRelativeTime } from '../services/storageService';
 
 interface NotificationsProps {
   notifications: Notification[];
@@ -58,7 +57,7 @@ const Notifications: React.FC<NotificationsProps> = ({ notifications, onClose, o
                         </div>
                         <div className="flex-1">
                             <p className="text-sm text-slate-700">{getNotificationText(notif)}</p>
-                            <p className="text-xs text-slate-500 mt-1">{formatRelativeTime(notif.timestamp)}</p>
+                            <p className="text-xs text-slate-500 mt-1">{notif.timestamp}</p>
                         </div>
                     </button>
                 </li>

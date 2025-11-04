@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Message } from '../types';
 import { PaperAirplaneIcon, LockClosedIcon, LockOpenIcon, XIcon } from './Icons';
-import { formatRelativeTime } from '../services/storageService';
 
 interface ChatPageProps {
   currentUser: User;
@@ -173,7 +172,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                              <div className={`w-fit max-w-xs lg:max-w-md p-3 rounded-2xl ${isSentByCurrentUser ? 'bg-indigo-600 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
                                <p className="text-sm">{msg.text}</p>
                              </div>
-                             <p className={`text-xs text-slate-400 mt-1 px-1 ${isSentByCurrentUser ? 'text-left' : 'text-right'}`}>{formatRelativeTime(msg.timestamp)}</p>
+                             <p className={`text-xs text-slate-400 mt-1 px-1 ${isSentByCurrentUser ? 'text-left' : 'text-right'}`}>{msg.timestamp}</p>
                            </div>
                         </div>
                      );

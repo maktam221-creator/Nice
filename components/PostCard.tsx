@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Post, User } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from './Icons';
 import CommentSection from './CommentSection';
-import { formatRelativeTime } from '../services/storageService';
 
 interface PostCardProps {
   post: Post;
@@ -62,7 +61,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onAddComment, onShare
             <img src={post.author.avatarUrl} alt={post.author.name} className="w-12 h-12 rounded-full" />
             <div>
               <p className="font-bold text-slate-800 group-hover:underline">{post.author.name}</p>
-              <p className="text-sm text-slate-500 text-right">{formatRelativeTime(post.timestamp)}</p>
+              <p className="text-sm text-slate-500 text-right">{post.timestamp}</p>
             </div>
         </button>
         {isOwnPost && (
