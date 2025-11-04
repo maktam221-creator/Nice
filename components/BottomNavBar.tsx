@@ -9,10 +9,8 @@ interface BottomNavBarProps {
     searchQuery: string;
     viewedProfileUid: string | null;
     currentUser: User;
-    unreadCount: number;
     onHomeClick: () => void;
     onShortsClick: () => void;
-    onNotificationsClick: () => void;
     onProfileClick: () => void;
     onChatClick: () => void;
 }
@@ -22,10 +20,8 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
     searchQuery, 
     viewedProfileUid, 
     currentUser, 
-    unreadCount, 
     onHomeClick, 
     onShortsClick, 
-    onNotificationsClick, 
     onProfileClick,
     onChatClick
 }) => {
@@ -34,7 +30,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
         { name: 'الرئيسية', icon: HomeIcon, action: onHomeClick, active: currentPage === 'home' && !searchQuery },
         { name: 'فيديوهات', icon: VideoCameraIcon, action: onShortsClick, active: currentPage === 'shorts' },
         { name: 'الدردشات', icon: ChatBubbleLeftRightIcon, action: onChatClick, active: currentPage === 'chat' },
-        { name: 'الإشعارات', icon: BellIcon, action: onNotificationsClick, active: false, badge: unreadCount },
         { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUid === currentUser.uid },
     ];
 
@@ -50,11 +45,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
           >
             <div className="relative">
               <item.icon className={`w-7 h-7 mb-1 transition-colors ${item.active ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-500'}`} />
-              {item.badge && item.badge > 0 && (
-                <span className="absolute -top-1 -right-2 flex justify-center items-center w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
-                  {item.badge}
-                </span>
-              )}
             </div>
             <span className={`transition-colors ${item.active ? 'text-indigo-600' : 'text-slate-600 group-hover:text-indigo-500'}`}>
                 {item.name}

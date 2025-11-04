@@ -312,10 +312,8 @@ export const App: React.FC = () => {
                 searchQuery={searchQuery}
                 viewedProfileUid={viewedProfileUid}
                 currentUser={currentUser}
-                unreadCount={notifications.filter(n => !n.read).length}
                 onHomeClick={() => navigateTo('home')}
                 onShortsClick={() => navigateTo('shorts')}
-                onNotificationsClick={() => { /* Handled in Header */ }}
                 onProfileClick={() => handleViewProfile(currentUser)}
                 onChatClick={() => navigateTo('chat')}
             />
