@@ -65,7 +65,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       (msg) =>
         (msg.senderKey === currentUser.uid && msg.receiverKey === selectedUser.uid) ||
         (msg.senderKey === selectedUser.uid && msg.receiverKey === currentUser.uid)
-    ).sort((a, b) => a.id - b.id);
+    );
   };
 
   const conversation = getConversation();
@@ -141,7 +141,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </button>
                 <button 
                     onClick={() => setSelectedUser(null)} 
-                    className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+                    className="p-2 rounded-full hover:bg-slate-100 transition-colors md:hidden"
                     aria-label="إغلاق المحادثة"
                 >
                     <XIcon className="w-6 h-6 text-slate-500" />

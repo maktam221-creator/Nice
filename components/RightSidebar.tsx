@@ -52,7 +52,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
           (msg) =>
             (msg.senderKey === currentUser.uid && msg.receiverKey === selectedUser.uid) ||
             (msg.senderKey === selectedUser.uid && msg.receiverKey === currentUser.uid)
-        ).sort((a, b) => a.id - b.id);
+        );
     };
 
     if (selectedUser) {
