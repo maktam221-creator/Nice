@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import { initialPosts } from './data';
-import { Post, User } from './types';
+import { Post, User, Comment } from './types';
 
 // A simple header for the logged-in view
 const Header: React.FC<{ user: User }> = ({ user }) => (
@@ -27,8 +27,24 @@ const guestUser: User = {
   avatarUrl: 'https://picsum.photos/seed/guest/100/100',
 };
 
+const initialComments: Record<number, Comment[]> = {
+    1: [
+        { id: 101, author: { uid: 'user2', name: 'فاطمة الزهراء', avatarUrl: 'https://picsum.photos/seed/user2/100/100' }, text: 'أهلاً بك!' },
+        { id: 102, author: guestUser, text: 'منشور رائع!' },
+    ],
+    2: [
+        { id: 201, author: { uid: 'user1', name: 'أحمد محمود', avatarUrl: 'https://picsum.photos/seed/user1/100/100' }, text: 'بالتوفيق!' },
+        { id: 202, author: guestUser, text: 'بداية موفقة.' },
+        { id: 203, author: guestUser, text: 'نعم!' },
+        { id: 204, author: guestUser, text: 'هيا!' },
+        { id: 205, author: guestUser, text: 'ممتاز!' },
+    ],
+};
+
+
 export const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
+  const [comments, setComments] = useState<Record<number, Comment[]>>(initialComments);
 
   // Use a static guest user since authentication is removed
   const appUser: User = guestUser;
@@ -42,8 +58,62 @@ export const App: React.FC = () => {
       likes: 0,
       comments: 0,
       timestamp: 'الآن',
+      isLiked: false,
     };
     setPosts([newPost, ...posts]);
+  };
+
+  const handleLikePost = (postId: number) => {
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          isLiked: !post.isLiked,
+          likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleAddComment = (postId: number, text: string) => {
+    const newComment: Comment = {
+      id: Date.now(),
+      author: appUser,
+      text,
+    };
+
+    setComments(prev => ({
+      ...prev,
+      [postId]: [...(prev[postId] || []), newComment],
+    }));
+
+    setPosts(posts.map(post => {
+      if (post.id === postId) {
+        return { ...post, comments: (post.comments || 0) + 1 };
+      }
+      return post;
+    }));
+  };
+
+  const handleSharePost = async (postId: number) => {
+    const postToShare = posts.find(p => p.id === postId);
+    if (!postToShare) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `منشور من ${postToShare.author.name}`,
+          text: postToShare.text,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.error('Error sharing post:', error);
+      }
+    } else {
+      navigator.clipboard.writeText(`${postToShare.text}\n${window.location.href}`);
+      alert('تم نسخ رابط المنشور.');
+    }
   };
   
   // The application now directly shows the main content without a login page.
@@ -54,7 +124,15 @@ export const App: React.FC = () => {
         <CreatePost currentUser={appUser} onAddPost={handleAddPost} />
         <div className="space-y-6">
           {posts.map(post => (
-            <PostCard key={post.id} post={post} />
+            <PostCard 
+              key={post.id} 
+              post={post}
+              currentUser={appUser}
+              comments={comments[post.id] || []}
+              onLikePost={handleLikePost}
+              onAddComment={handleAddComment}
+              onSharePost={handleSharePost}
+            />
           ))}
         </div>
       </main>

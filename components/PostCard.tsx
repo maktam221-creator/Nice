@@ -1,13 +1,25 @@
 
-import React from 'react';
-import { Post } from '../types';
+import React, { useState } from 'react';
+import { Post, User, Comment } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon } from './Icons';
+import CommentSection from './CommentSection';
 
 interface PostCardProps {
   post: Post;
+  currentUser: User;
+  comments: Comment[];
+  onLikePost: (postId: number) => void;
+  onAddComment: (postId: number, text: string) => void;
+  onSharePost: (postId: number) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLikePost, onAddComment, onSharePost }) => {
+  const [showComments, setShowComments] = useState(false);
+
+  const handleAddCommentWrapper = (text: string) => {
+    onAddComment(post.id, text);
+  };
+
   return (
     <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6">
       <div className="flex items-center space-x-4 rtl:space-x-reverse mb-4">
@@ -33,19 +45,36 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       
       {/* Action Buttons */}
       <div className="flex justify-around py-1">
-        <button className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100">
-          <HeartIcon className="w-6 h-6" />
-          <span className="font-semibold">إعجاب</span>
+        <button 
+          onClick={() => onLikePost(post.id)}
+          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
+        >
+          <HeartIcon className={`w-6 h-6 transition-colors ${post.isLiked ? 'text-red-500 fill-current' : 'group-hover:text-red-500'}`} />
+          <span className={`font-semibold transition-colors ${post.isLiked ? 'text-red-500' : 'group-hover:text-red-500'}`}>إعجاب</span>
         </button>
-        <button className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100">
-          <CommentIcon className="w-6 h-6" />
-          <span className="font-semibold">تعليق</span>
+        <button 
+          onClick={() => setShowComments(!showComments)}
+          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
+        >
+          <CommentIcon className="w-6 h-6 transition-colors group-hover:text-indigo-500" />
+          <span className="font-semibold transition-colors group-hover:text-indigo-500">تعليق</span>
         </button>
-        <button className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100">
-          <ShareIcon className="w-6 h-6" />
-          <span className="font-semibold">مشاركة</span>
+        <button 
+          onClick={() => onSharePost(post.id)}
+          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
+        >
+          <ShareIcon className="w-6 h-6 transition-colors group-hover:text-green-500" />
+          <span className="font-semibold transition-colors group-hover:text-green-500">مشاركة</span>
         </button>
       </div>
+
+      {showComments && (
+        <CommentSection 
+          comments={comments} 
+          onAddComment={handleAddCommentWrapper}
+          currentUser={currentUser} 
+        />
+      )}
     </div>
   );
 };

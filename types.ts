@@ -24,6 +24,7 @@ export interface Post {
   likes: number;
   comments: number;
   timestamp: string;
+  isLiked?: boolean;
 }
 
 // Fix: Added missing Comment type definition.

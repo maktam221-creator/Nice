@@ -15,6 +15,7 @@ export const initialPosts: Post[] = [
     likes: 15,
     comments: 2,
     timestamp: 'منذ 5 دقائق',
+    isLiked: false,
   },
   {
     id: 2,
@@ -23,5 +24,6 @@ export const initialPosts: Post[] = [
     likes: 32,
     comments: 5,
     timestamp: 'منذ 3 دقائق',
+    isLiked: true,
   },
 ];
