@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
@@ -244,7 +245,7 @@ export const App: React.FC = () => {
                 onNotificationNavigate={handleNotificationNavigate}
             />
             <main className="max-w-7xl mx-auto pt-20 px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <aside className="hidden lg:block lg:col-span-3">
+                <aside className="hidden lg:block lg:col-span-2">
                     <Sidebar 
                         currentUser={currentUser}
                         allUsers={allUsersList}
@@ -254,13 +255,13 @@ export const App: React.FC = () => {
                     />
                 </aside>
                 
-                <div className="lg:col-span-6 min-w-0">
+                <div className="lg:col-span-8 min-w-0">
                     <Suspense fallback={<ContentLoader />}>
                         {renderMainContent()}
                     </Suspense>
                 </div>
 
-                <aside className="hidden lg:block lg:col-span-3">
+                <aside className="hidden lg:block lg:col-span-2">
                     <RightSidebar 
                         currentUser={currentUser}
                         allUsers={users}
