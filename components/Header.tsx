@@ -180,6 +180,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                                         notifications={notifications}
                                         onClose={() => setIsNotificationsOpen(false)}
                                         onNavigate={handleNotificationClick}
+                                        className="fixed top-16 left-0 w-full bg-white shadow-lg border-b border-slate-200 z-30"
                                     />
                                 )}
                             </div>
