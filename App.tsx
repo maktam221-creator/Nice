@@ -125,14 +125,13 @@ const App: React.FC = () => {
   useEffect(() => { saveState('maydan_following', following); }, [following]);
 
   useEffect(() => {
+    if (authLoading) return; // Wait until authentication check is complete
     if (authUser) {
-      // In a real app, you would fetch the user's profile from Firestore here.
-      // For now, we'll create a profile based on the auth user's info.
-      const existingUser = users[authUser.uid];
-      if (existingUser) {
-        setCurrentUser(existingUser);
+      const userProfile = users[authUser.uid];
+      if (userProfile) {
+        setCurrentUser(userProfile);
       } else {
-         const userProfile: User = {
+        const newUserProfile: User = {
           uid: authUser.uid,
           name: authUser.displayName || authUser.email?.split('@')[0] || 'مستخدم جديد',
           avatarUrl: authUser.photoURL || `https://picsum.photos/seed/${authUser.uid}/100/100`,
@@ -141,21 +140,13 @@ const App: React.FC = () => {
           gender: { value: 'أفضل عدم القول', isPublic: true },
           isOnline: true,
         };
-        setCurrentUser(userProfile);
+        setCurrentUser(newUserProfile);
+        setUsers(prev => ({ ...prev, [newUserProfile.uid]: newUserProfile }));
       }
     } else {
       setCurrentUser(null);
     }
-  }, [authUser, users]);
-
-  useEffect(() => {
-    if (currentUser) {
-        setUsers(prevUsers => ({
-            ...prevUsers,
-            [currentUser.uid]: currentUser
-        }));
-    }
-  }, [currentUser]);
+  }, [authUser, users, authLoading]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -262,13 +253,26 @@ const App: React.FC = () => {
 
 
   const handleUpdateProfile = (updatedUser: User) => {
-    const oldUser = currentUser;
-    if (!oldUser) return;
-    
     setCurrentUser(updatedUser);
-
-    if (viewedProfileUser && viewedProfileUser.uid === oldUser.uid) { setViewedProfileUser(updatedUser); }
-    setPosts(prevPosts => prevPosts.map(post => { const updatedPost = { ...post }; if (post.author.uid === oldUser.uid) { updatedPost.author = updatedUser; } updatedPost.comments = post.comments.map(comment => { if (comment.author.uid === oldUser.uid) { return { ...comment, author: updatedUser }; } return comment; }); return updatedPost; }));
+    setUsers(prev => ({ ...prev, [updatedUser.uid]: updatedUser }));
+    
+    if (viewedProfileUser && viewedProfileUser.uid === updatedUser.uid) { 
+        setViewedProfileUser(updatedUser); 
+    }
+    
+    setPosts(prevPosts => prevPosts.map(post => {
+        const updatedPost = { ...post };
+        if (post.author.uid === updatedUser.uid) {
+            updatedPost.author = updatedUser;
+        }
+        updatedPost.comments = post.comments.map(comment => {
+            if (comment.author.uid === updatedUser.uid) {
+                return { ...comment, author: updatedUser };
+            }
+            return comment;
+        });
+        return updatedPost;
+    }));
   };
 
   const handleUpdateAvatar = (newAvatarUrl: string) => {
@@ -282,9 +286,8 @@ const App: React.FC = () => {
         const viewer = currentUser;
         setProfileViews(prev => {
             const viewsForUser = prev[user.uid] || [];
-            // Check if the current user is already the last viewer
             if (viewsForUser.length > 0 && viewsForUser[0].viewer.uid === viewer.uid) {
-                return prev; // Don't add if they are the last viewer
+                return prev;
             }
             const newView: ProfileView = { viewer, timestamp: "الآن" };
             return { ...prev, [user.uid]: [newView, ...viewsForUser] };
@@ -452,11 +455,13 @@ const App: React.FC = () => {
     }
     const lowercasedQuery = searchQuery.toLowerCase();
     const validUsers: User[] = Object.values(users).filter(
-      // FIX: The `user` parameter might be `unknown` when loaded from localStorage.
-      // Cast to `any` to safely access properties for this runtime check.
-// Fix: Changed user type from unknown to any to avoid type errors with dynamic data from localStorage.
-      (user: any): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
-    );
+        // A safer type guard to handle potentially malformed data from localStorage.
+        (user: unknown): user is User =>
+          user !== null &&
+          typeof user === 'object' &&
+          'uid' in user && typeof (user as any).uid === 'string' &&
+          'name' in user && typeof (user as any).name === 'string'
+      );
 
     const filteredUsers = validUsers.filter(user =>
       user.name.toLowerCase().includes(lowercasedQuery) && user.uid !== currentUser?.uid
@@ -591,8 +596,7 @@ const App: React.FC = () => {
           onSave={handleSavePost}
           onAddPost={handleAddPost}
           currentUser={currentUser}
-// Fix: Corrected typo from `onViewProfile` to `handleViewProfile`.
-          onViewProfile={handleViewProfile}
+          handleViewProfile={handleViewProfile}
           onEditProfile={() => setIsEditModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
           onGoToChat={handleGoToChat}
@@ -686,7 +690,12 @@ const App: React.FC = () => {
           <div className="sticky top-24">
             <Sidebar
                 currentUser={currentUser}
-                allUsers={Object.values(users).filter((user: any): user is User => !!user && !!user.uid)}
+                allUsers={Object.values(users).filter((user: unknown): user is User =>
+                    user !== null &&
+                    typeof user === 'object' &&
+                    'uid' in user && typeof (user as any).uid === 'string' &&
+                    'name' in user && typeof (user as any).name === 'string'
+                )}
                 following={following}
                 onViewProfile={handleViewProfile}
                 onFollowToggle={handleFollowToggle}
@@ -772,6 +781,7 @@ const App: React.FC = () => {
           onClose={() => setViewingStoryUserKey(null)}
           onNextUser={getNextStoryUserKey}
           onPrevUser={getPrevStoryUserKey}
+          // Fix: Corrected typo in function name from `handleMarkAsViewed` to `handleMarkStoryAsViewed`.
           onMarkAsViewed={handleMarkStoryAsViewed}
         />
       )}
