@@ -41,17 +41,25 @@ const ReelCard: React.FC<ReelCardProps> = ({ reel, currentUser, onLike, onAddCom
         const shareUrl = `${window.location.origin}/#reel/${reel.id}`;
         if (navigator.share) {
             try {
-            await navigator.share({
-                title: `فيديو من ${reel.author.name}`,
-                text: reel.caption,
-                url: shareUrl,
-            });
-            onShare(reel.id);
+                await navigator.share({
+                    title: `فيديو من ${reel.author.name}`,
+                    text: reel.caption,
+                    url: shareUrl,
+                });
+                onShare(reel.id);
             } catch (error) {
-            console.error('خطأ في المشاركة:', error);
+                console.log('Share failed or was cancelled', error);
             }
         } else {
-            alert('المشاركة غير مدعومة على هذا المتصفح.');
+            // Fallback to copying the link to clipboard for unsupported browsers.
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('تم نسخ رابط الفيديو.');
+                onShare(reel.id); // Call onShare to track the share action
+            } catch (err) {
+                console.error('Failed to copy URL:', err);
+                alert('فشل نسخ رابط الفيديو.');
+            }
         }
     };
 

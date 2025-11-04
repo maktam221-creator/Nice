@@ -147,10 +147,25 @@ export const App: React.FC = () => {
     };
     const handleSharePost = async (postId: number) => {
         const post = posts.find(p => p.id === postId);
-        if (post && navigator.share) {
-            await navigator.share({ title: `منشور من ${post.author.name}`, text: post.text, url: window.location.href });
-        } else {
-            alert('تم نسخ رابط المنشور.');
+        if (post) {
+            // Using window.location.origin ensures a valid URL structure, fixing the "Invalid URL" error.
+            const shareUrl = window.location.origin;
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: `منشور من ${post.author.name}`, text: post.text, url: shareUrl });
+                } catch (error) {
+                    console.log("Share failed or was cancelled", error);
+                }
+            } else {
+                // Fallback to copying the link to clipboard for unsupported browsers.
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('تم نسخ رابط المنشور.');
+                } catch (err) {
+                    console.error('Failed to copy URL:', err);
+                    alert('فشل نسخ رابط المنشور.');
+                }
+            }
         }
     };
     const handleOpenEditPostModal = (post: Post) => { setEditingPost(post); setIsEditPostModalOpen(true); };
