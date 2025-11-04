@@ -2,6 +2,7 @@
 import React from 'react';
 import { User } from '../types';
 import { XIcon, EyeIcon } from './Icons';
+import { formatRelativeTime } from '../services/storageService';
 
 interface ProfileViewersModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ const ProfileViewersModal: React.FC<ProfileViewersModalProps> = ({ isOpen, onClo
                             <img src={viewer.avatarUrl} alt={viewer.name} className="w-12 h-12 rounded-full" />
                             <div className="flex-1">
                                 <p className="font-semibold text-slate-800 group-hover:underline">{viewer.name}</p>
-                                <p className="text-sm text-slate-500">{timestamp}</p>
+                                <p className="text-sm text-slate-500">{formatRelativeTime(timestamp)}</p>
                             </div>
                         </button>
                     </div>

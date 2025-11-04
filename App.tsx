@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
@@ -168,7 +169,7 @@ const App: React.FC = () => {
 
   const handleAddPost = (text: string, imageUrl?: string) => {
     if (!currentUser) return;
-    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, isSaved: false, timestamp: 'الآن', comments: [], };
+    const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, shares: 0, isLiked: false, isSaved: false, timestamp: new Date().toISOString(), comments: [], };
     setPosts([newPost, ...posts]);
   };
 
@@ -243,7 +244,7 @@ const App: React.FC = () => {
       likes: 0,
       shares: 0,
       isLiked: false,
-      timestamp: 'الآن',
+      timestamp: new Date().toISOString(),
       comments: [],
       music: 'Original Audio'
     };
@@ -272,8 +273,8 @@ const App: React.FC = () => {
         const viewer = currentUser;
         setProfileViews(prev => {
             const viewsForUser = prev[user.uid] || [];
-            if (viewsForUser.length > 0 && viewsForUser[viewsForUser.length - 1].viewer.uid === viewer.uid) { return prev; }
-            const newView: ProfileView = { viewer, timestamp: 'الآن' };
+            if (viewsForUser.length > 0 && viewsForUser[0].viewer.uid === viewer.uid) { return prev; }
+            const newView: ProfileView = { viewer, timestamp: new Date().toISOString() };
             const newViews = [newView, ...viewsForUser];
             return { ...prev, [user.uid]: newViews };
         });
@@ -317,7 +318,7 @@ const App: React.FC = () => {
       senderKey: currentUser.uid,
       receiverKey: recipient.uid,
       text,
-      timestamp: 'الآن',
+      timestamp: new Date().toISOString(),
     };
     setMessages(prev => [...prev, newMessage]);
 
@@ -327,7 +328,7 @@ const App: React.FC = () => {
             senderKey: recipient.uid,
             receiverKey: currentUser.uid,
             text: 'شكراً لك! سألقي نظرة على ذلك.',
-            timestamp: 'الآن',
+            timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, replyMessage]);
 
@@ -336,7 +337,7 @@ const App: React.FC = () => {
             type: 'message',
             actor: recipient,
             read: false,
-            timestamp: 'الآن',
+            timestamp: new Date().toISOString(),
         };
         setNotifications(prev => [newNotification, ...prev]);
     }, 1500);
@@ -349,10 +350,20 @@ const App: React.FC = () => {
   const handleNotificationNavigate = (notification: Notification) => {
     setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
     setIsNotificationsOpen(false);
-    if (notification.type === 'message') {
-        handleGoToChat(notification.actor);
-    } else {
-        handleViewProfile(notification.actor);
+
+    switch(notification.type) {
+        case 'follow':
+            handleViewProfile(notification.actor);
+            break;
+        case 'message':
+            handleGoToChat(notification.actor);
+            break;
+        case 'like':
+        case 'comment':
+            // In a real app, you'd navigate to the specific post.
+            // For simplicity, we'll just go home.
+            handleGoHome();
+            break;
     }
   };
 
@@ -361,244 +372,329 @@ const App: React.FC = () => {
     const newStory: Story = {
       id: Date.now(),
       authorKey: currentUser.uid,
+      ...storyData,
       timestamp: new Date(),
       viewedBy: [],
-      ...storyData
     };
     setStories(prev => [newStory, ...prev]);
   };
 
-  const handleViewStories = (userUid: string) => {
-      setViewingStoryUserKey(userUid);
-  };
-
   const handleMarkStoryAsViewed = (storyId: number) => {
-      if (!currentUser) return;
-      setStories(prevStories => prevStories.map(story => {
-          if (story.id === storyId && !story.viewedBy.includes(currentUser.uid)) {
-              return { ...story, viewedBy: [...story.viewedBy, currentUser.uid] };
-          }
-          return story;
-      }));
+    if (!currentUser) return;
+    setStories(prev => prev.map(story => {
+      if (story.id === storyId && !story.viewedBy.includes(currentUser.uid)) {
+        return { ...story, viewedBy: [...story.viewedBy, currentUser.uid] };
+      }
+      return story;
+    }));
   };
-
-  const userPosts = posts.filter(post => post.author.uid === viewedProfileUser?.uid);
-  const userReels = reels.filter(reel => reel.author.uid === viewedProfileUser?.uid);
-  const lowercasedQuery = searchQuery.trim().toLowerCase();
-  const filteredPosts = searchQuery ? posts.filter(post => post.text.toLowerCase().includes(lowercasedQuery) || post.author.name.toLowerCase().includes(lowercasedQuery)) : [];
-  const filteredUsers = searchQuery ? (Object.values(users) as User[]).filter(user => user.uid !== currentUser?.uid && user.name.toLowerCase().includes(lowercasedQuery)) : [];
-  const unreadCount = notifications.filter(n => !n.read).length;
-  const followingUsers = following.map(uid => users[uid]).filter(Boolean);
-  const savedPosts = posts.filter(post => post.isSaved);
-
-  const activeStories = useMemo(() => {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    return stories.filter(story => story.timestamp > twentyFourHoursAgo);
-  }, [stories]);
+  
+  const handleViewStories = (userUid: string) => {
+    setViewingStoryUserKey(userUid);
+  };
+  
+  const storyUsers = useMemo(() => {
+    const userKeysWithStories = [...new Set(stories.map(s => s.authorKey))];
+    // Fix: Use a type guard to filter out undefined users and correctly type the result.
+    return userKeysWithStories
+      .map(key => users[key])
+      .filter((user): user is User => Boolean(user));
+  }, [stories, users]);
 
   const storyGroups = useMemo(() => {
-      const groups: Record<string, { user: User; stories: Story[]; hasUnviewed: boolean }> = {};
-      
-      if (!currentUser) return [];
+    if (!currentUser) return [];
+    return storyUsers.map(user => {
+      const userStories = stories.filter(s => s.authorKey === user.uid);
+      const hasUnviewed = userStories.some(s => !s.viewedBy.includes(currentUser.uid));
+      return { user, hasUnviewed };
+    });
+  }, [storyUsers, stories, currentUser]);
 
-      for (const story of activeStories) {
-          if (story.authorKey === currentUser.uid) continue;
-          if (!users[story.authorKey]) continue;
-
-          if (!groups[story.authorKey]) {
-              groups[story.authorKey] = {
-                  user: users[story.authorKey],
-                  stories: [],
-                  hasUnviewed: false,
-              };
-          }
-          groups[story.authorKey].stories.push(story);
-          if (!story.viewedBy.includes(currentUser.uid)) {
-              groups[story.authorKey].hasUnviewed = true;
-          }
-      }
-      return Object.values(groups).filter(g => g.user);
-  }, [activeStories, users, currentUser]);
+  const viewingStoryUser = viewingStoryUserKey ? users[viewingStoryUserKey] : null;
+  const storiesForViewer = viewingStoryUser ? stories.filter(s => s.authorKey === viewingStoryUser.uid) : [];
   
-  const viewingUserStories = viewingStoryUserKey ? activeStories.filter(s => s.authorKey === viewingStoryUserKey) : [];
-
-  const handleStoryNavigation = (direction: 'next' | 'prev') => {
-      const userKeysWithStories = storyGroups.map(g => g.user.uid).filter(Boolean) as string[];
-      if (!viewingStoryUserKey) return;
-      const currentIndex = userKeysWithStories.indexOf(viewingStoryUserKey);
-      
-      let nextIndex;
-      if (direction === 'next') {
-          nextIndex = currentIndex + 1;
-          if (nextIndex >= userKeysWithStories.length) {
-              setViewingStoryUserKey(null); // Close viewer
-              return;
-          }
-      } else {
-          nextIndex = currentIndex - 1;
-          if (nextIndex < 0) {
-              setViewingStoryUserKey(null); // Close viewer
-              return;
-          }
-      }
-      setViewingStoryUserKey(userKeysWithStories[nextIndex]);
+  const getNextStoryUserKey = () => {
+    if (!viewingStoryUserKey) return;
+    const currentIndex = storyUsers.findIndex(u => u.uid === viewingStoryUserKey);
+    if (currentIndex > -1 && currentIndex < storyUsers.length - 1) {
+      setViewingStoryUserKey(storyUsers[currentIndex + 1].uid);
+    } else {
+      setViewingStoryUserKey(null); // Close viewer if it's the last user
+    }
+  };
+  
+  const getPrevStoryUserKey = () => {
+    if (!viewingStoryUserKey) return;
+    const currentIndex = storyUsers.findIndex(u => u.uid === viewingStoryUserKey);
+    if (currentIndex > 0) {
+      setViewingStoryUserKey(storyUsers[currentIndex - 1].uid);
+    } else {
+      setViewingStoryUserKey(null); // Close viewer if it's the first user
+    }
   };
 
 
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return { users: [], posts: [] };
+    }
+    const lowercasedQuery = searchQuery.toLowerCase();
+    const filteredUsers = Object.values(users).filter(user =>
+      user.name.toLowerCase().includes(lowercasedQuery) && user.uid !== currentUser?.uid
+    );
+    const filteredPosts = posts.filter(post =>
+      post.text.toLowerCase().includes(lowercasedQuery) ||
+      post.author.name.toLowerCase().includes(lowercasedQuery)
+    );
+    return { users: filteredUsers, posts: filteredPosts };
+  }, [searchQuery, users, posts, currentUser]);
+  
+  const followingUsers = useMemo(() => {
+    return following.map(uid => users[uid]).filter(Boolean);
+  }, [following, users]);
+
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+
+
+  // Loading screen
   if (authLoading) {
     return (
-        <div className="flex justify-center items-center h-screen bg-slate-100">
-            <div className="w-16 h-16 border-8 border-t-transparent border-indigo-600 rounded-full animate-spin"></div>
-        </div>
+      <div className="min-h-screen bg-slate-100 flex justify-center items-center">
+        <div className="w-16 h-16 border-8 border-t-transparent border-indigo-600 rounded-full animate-spin"></div>
+      </div>
     );
   }
-  
-  if (!authUser) {
-      return <AuthPage />;
+
+  // Auth screen
+  if (!authUser || !currentUser) {
+    return <AuthPage />;
   }
 
-  if (!currentUser) {
-    return <div className="flex justify-center items-center h-screen">Loading Profile...</div>;
-  }
-
-  const renderMainContent = () => {
-    if (searchQuery) {
-      return <SearchResults users={filteredUsers} posts={filteredPosts} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} />;
+  // Main App
+  const renderPage = () => {
+    if (searchQuery.trim()) {
+      return <SearchResults 
+        users={searchResults.users} 
+        posts={searchResults.posts} 
+        currentUser={currentUser} 
+        onViewProfile={handleViewProfile}
+        onLike={handleLikePost}
+        onAddComment={handleAddComment}
+        onShare={handleSharePost}
+        onSave={handleSavePost}
+        onEdit={handleOpenEditPostModal}
+        onDelete={handleDeletePost}
+        query={searchQuery}
+        following={following}
+        onFollowToggle={handleFollowToggle}
+      />
     }
+
     switch (currentPage) {
-        case 'profile':
-            if (viewedProfileUser) {
-                return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} onViewProfile={handleViewProfile} onEditProfile={() => setIsEditModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={handleGoToChat} following={following} onFollowToggle={handleFollowToggle} viewers={profileViews[viewedProfileUser.uid]} onUpdateAvatar={handleUpdateAvatar} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />
-            }
-            return null;
-        case 'chat':
-            return <ChatPage currentUser={currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} onViewProfile={handleViewProfile} />;
-        case 'shorts':
-            return <ShortsPage reels={reels} currentUser={currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsReelCreatorOpen(true)} onViewProfile={handleViewProfile} />;
-        case 'home':
-        default:
-            return (
-                <>
-                    <StoriesTray
-                      storyGroups={storyGroups}
-                      currentUser={currentUser}
-                      onViewStories={(userUid) => handleViewStories(userUid)}
-                      onAddStory={() => setIsStoryCreatorOpen(true)}
-                    />
-                    <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
-                    <div className="mt-8">
-                      {posts.map((post) => ( <PostCard key={post.id} post={post} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} /> ))}
-                    </div>
-                </>
-            );
+      case 'profile':
+        const userToView = viewedProfileUser || currentUser;
+        return <ProfilePage
+          user={userToView}
+          posts={posts.filter(p => p.author.uid === userToView.uid)}
+          reels={reels.filter(r => r.author.uid === userToView.uid)}
+          savedPosts={posts.filter(p => p.isSaved)}
+          onLike={handleLikePost}
+          onAddComment={handleAddComment}
+          onShare={handleSharePost}
+          onSave={handleSavePost}
+          onAddPost={handleAddPost}
+          currentUser={currentUser}
+          onViewProfile={handleViewProfile}
+          onEditProfile={() => setIsEditModalOpen(true)}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onGoToChat={handleGoToChat}
+          following={following}
+          onFollowToggle={handleFollowToggle}
+          viewers={profileViews[userToView.uid]}
+          onUpdateAvatar={handleUpdateAvatar}
+          onEditPost={handleOpenEditPostModal}
+          onDeletePost={handleDeletePost}
+        />;
+      case 'chat':
+        return <ChatPage 
+          currentUser={currentUser}
+          allUsers={users}
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          followingUsers={followingUsers}
+          initialTargetUser={chatTargetUser}
+          onClearTargetUser={() => setChatTargetUser(null)}
+          onViewProfile={handleViewProfile}
+        />;
+      case 'shorts':
+        return <ShortsPage
+            reels={reels}
+            currentUser={currentUser}
+            onLike={handleLikeReel}
+            onAddComment={handleAddReelComment}
+            onShare={handleShareReel}
+            onAddReel={() => setIsReelCreatorOpen(true)}
+            onViewProfile={handleViewProfile}
+        />
+      case 'home':
+      default:
+        return (
+          <>
+            <StoriesTray
+                storyGroups={storyGroups}
+                currentUser={currentUser}
+                onViewStories={handleViewStories}
+                onAddStory={() => setIsStoryCreatorOpen(true)}
+             />
+            <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
+            <div className="space-y-6">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLike={handleLikePost}
+                  onAddComment={handleAddComment}
+                  onShare={handleSharePost}
+                  onSave={handleSavePost}
+                  currentUser={currentUser}
+                  onViewProfile={handleViewProfile}
+                  onEdit={handleOpenEditPostModal}
+                  onDelete={handleDeletePost}
+                />
+              ))}
+            </div>
+          </>
+        );
     }
-  }
+  };
 
   return (
-    <div className="bg-slate-100 min-h-screen font-sans text-slate-800">
-      <header className="bg-white shadow-md sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto py-3 px-4 flex justify-start sm:justify-between items-center gap-2 sm:gap-4 relative">
-          <h1 className="text-xl sm:text-2xl font-bold text-indigo-600 shrink-0">Maydan</h1>
-          <div className="relative flex-grow max-w-xl sm:mx-auto">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <SearchIcon className="w-5 h-5 text-slate-400" />
-            </span>
-            <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="البحث..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 border border-slate-300 rounded-full bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-            />
-            {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute inset-y-0 right-0 flex items-center pr-3" aria-label="مسح البحث">
-                    <XCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                </button>
-            )}
-          </div>
-          <div className="flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse" ref={notificationButtonRef}>
-            <div className="hidden lg:flex items-center space-x-1 sm:space-x-2 rtl:space-x-reverse">
-                <button onClick={handleGoHome} aria-label="الرئيسية" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <HomeIcon className={`w-7 h-7 ${currentPage === 'home' && !searchQuery ? 'text-indigo-600' : 'text-slate-500'}`} />
-                </button>
-                <button onClick={handleGoToShorts} aria-label="فيديوهات" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <VideoCameraIcon className={`w-7 h-7 ${currentPage === 'shorts' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                </button>
-                <button onClick={() => handleGoToChat()} aria-label="الدردشات" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <ChatBubbleLeftRightIcon className={`w-7 h-7 ${currentPage === 'chat' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                </button>
-                <button onClick={handleGoToMyProfile} aria-label="الملف الشخصي" className="p-2 rounded-full hover:bg-slate-100 transition-colors">
-                  <UserIcon className={`w-7 h-7 ${currentPage === 'profile' && viewedProfileUser?.uid === currentUser.uid ? 'text-indigo-600' : 'text-slate-500'}`} />
+    <div className="bg-slate-100 min-h-screen pb-16 lg:pb-0">
+      <header className="bg-white shadow-md sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <button onClick={handleGoHome}>
+                <h1 className="text-2xl font-bold text-indigo-600">Maydan</h1>
+            </button>
+            <div className="relative w-full max-w-xs hidden lg:block">
+                <input
+                    type="text"
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث عن أصدقاء أو منشورات..."
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                />
+                <SearchIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                {searchQuery && (
+                     <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                        <XCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600"/>
+                     </button>
+                )}
+            </div>
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <div ref={notificationButtonRef} className="relative">
+                    <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full hover:bg-slate-100 transition-colors hidden sm:block">
+                        <BellIcon className="w-6 h-6 text-slate-600"/>
+                        {unreadNotificationsCount > 0 && (
+                             <span className="absolute -top-0.5 -right-0.5 flex justify-center items-center w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
+                                {unreadNotificationsCount}
+                            </span>
+                        )}
+                    </button>
+                </div>
+                <button onClick={handleGoToMyProfile} className="flex items-center space-x-2 rtl:space-x-reverse p-1 pr-3 rounded-full hover:bg-slate-100 transition-colors hidden sm:flex">
+                    <span className="font-semibold text-slate-700 text-sm hidden md:block">{currentUser.name}</span>
+                    <img src={currentUser.avatarUrl} alt="ملف شخصي" className="w-9 h-9 rounded-full" />
                 </button>
             </div>
-            <div className="hidden lg:block">
-                 <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} aria-label="الإشعارات" className="p-2 rounded-full hover:bg-slate-100 transition-colors relative">
-                    <BellIcon className="w-7 h-7 text-slate-500" />
-                    {unreadCount > 0 && ( <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-white"></span> )}
-                </button>
-            </div>
-          </div>
-          <div ref={notificationsRef}>
-            {isNotificationsOpen && ( <Notifications notifications={notifications} onClose={() => setIsNotificationsOpen(false)} onNavigate={handleNotificationNavigate} /> )}
-          </div>
         </div>
+        {isNotificationsOpen && (
+             <div ref={notificationsRef}>
+                <Notifications notifications={notifications} onClose={() => setIsNotificationsOpen(false)} onNavigate={handleNotificationNavigate} />
+            </div>
+        )}
       </header>
-      <div className="max-w-6xl mx-auto p-4 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-8 pb-24 lg:pb-4">
-        <main className="lg:col-span-2">
-            {renderMainContent()}
-        </main>
-        <aside className="hidden lg:block sticky top-24 h-fit">
-            <Sidebar currentUser={currentUser} allUsers={Object.values(users) as User[]} following={following} onViewProfile={handleViewProfile} onFollowToggle={handleFollowToggle} />
+
+      <main className="max-w-6xl mx-auto p-4 lg:py-6 grid grid-cols-12 gap-8">
+        <aside className="col-span-3 hidden xl:block">
+           <Sidebar
+              currentUser={currentUser}
+              allUsers={Object.values(users)}
+              following={following}
+              onViewProfile={handleViewProfile}
+              onFollowToggle={handleFollowToggle}
+            />
         </aside>
-      </div>
-      <EditProfileModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} user={currentUser} onSave={handleUpdateProfile} />
-      <EditPostModal
-        isOpen={!!editingPost}
-        onClose={handleCloseEditPostModal}
-        post={editingPost}
-        onSave={handleEditPost}
+        <div className="col-span-12 xl:col-span-6">
+            {renderPage()}
+        </div>
+        <aside className="col-span-3 hidden xl:block">
+            {/* Right sidebar could have trends, ads, etc. */}
+        </aside>
+      </main>
+      
+      <BottomNavBar 
+        currentPage={currentPage} 
+        searchQuery={searchQuery}
+        viewedProfileUser={viewedProfileUser}
+        currentUser={currentUser}
+        unreadCount={unreadNotificationsCount}
+        onHomeClick={handleGoHome}
+        onShortsClick={handleGoToShorts}
+        onNotificationsClick={() => setIsNotificationsOpen(p => !p)}
+        onProfileClick={handleGoToMyProfile}
+        onChatClick={handleGoToChat}
       />
-      <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={logout} />
-       <StoryCreatorModal 
-        isOpen={isStoryCreatorOpen}
-        onClose={() => setIsStoryCreatorOpen(false)}
-        onAddStory={handleAddStory}
-      />
-      <CreateReelModal
-        isOpen={isReelCreatorOpen}
-        onClose={() => setIsReelCreatorOpen(false)}
-        onAddReel={handleAddReel}
-      />
-      {viewingStoryUserKey && viewingUserStories.length > 0 && (
-        <StoryViewer
-          user={users[viewingStoryUserKey]}
-          stories={viewingUserStories}
-          onClose={() => setViewingStoryUserKey(null)}
-          onNextUser={() => handleStoryNavigation('next')}
-          onPrevUser={() => handleStoryNavigation('prev')}
-          onMarkAsViewed={handleMarkStoryAsViewed}
+      
+      {isEditModalOpen && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          user={currentUser}
+          onSave={handleUpdateProfile}
         />
       )}
+      <EditPostModal
+          isOpen={!!editingPost}
+          onClose={handleCloseEditPostModal}
+          post={editingPost}
+          onSave={handleEditPost}
+      />
       <ConfirmationModal
           isOpen={postIdToDelete !== null}
           onClose={() => setPostIdToDelete(null)}
           onConfirm={confirmDeletePost}
           title="تأكيد الحذف"
-          message="هل أنت متأكد أنك تريد حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء."
+          message="هل أنت متأكد من رغبتك في حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء."
       />
-      <BottomNavBar
-        currentPage={currentPage}
-        searchQuery={searchQuery}
-        viewedProfileUser={viewedProfileUser}
-        currentUser={currentUser}
-        unreadCount={unreadCount}
-        onHomeClick={handleGoHome}
-        onProfileClick={handleGoToMyProfile}
-        onNotificationsClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-        onShortsClick={handleGoToShorts}
-        onChatClick={() => handleGoToChat()}
+      {isSettingsModalOpen && (
+        <SettingsModal 
+            isOpen={isSettingsModalOpen}
+            onClose={() => setIsSettingsModalOpen(false)}
+            onLogout={logout}
+        />
+      )}
+       <StoryCreatorModal 
+        isOpen={isStoryCreatorOpen}
+        onClose={() => setIsStoryCreatorOpen(false)}
+        onAddStory={handleAddStory}
       />
+       {viewingStoryUser && storiesForViewer.length > 0 && (
+        <StoryViewer 
+          user={viewingStoryUser}
+          stories={storiesForViewer}
+          onClose={() => setViewingStoryUserKey(null)}
+          onNextUser={getNextStoryUserKey}
+          onPrevUser={getPrevStoryUserKey}
+          onMarkAsViewed={handleMarkStoryAsViewed}
+        />
+      )}
+      <CreateReelModal
+        isOpen={isReelCreatorOpen}
+        onClose={() => setIsReelCreatorOpen(false)}
+        onAddReel={handleAddReel}
+      />
+
     </div>
   );
 };
