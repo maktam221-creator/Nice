@@ -40,7 +40,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] z-40">
-      <div className="max-w-6xl mx-auto flex justify-around">
+      <div className="max-w-7xl mx-auto flex justify-around">
         {navItems.map(item => (
           <button
             key={item.name}

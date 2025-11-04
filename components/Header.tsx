@@ -48,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
 
     return (
         <header className="bg-white shadow-md fixed top-0 left-0 right-0 z-40">
-            <div className="max-w-6xl mx-auto px-4">
+            <div className="max-w-7xl mx-auto px-4">
                 <div className="flex justify-between items-center h-16">
                     {/* --- LEFT & CENTER SECTION --- */}
                     <div className="flex items-center space-x-4 rtl:space-x-reverse flex-1 min-w-0">

@@ -236,7 +236,7 @@ export const App: React.FC = () => {
                 onGoToHome={() => navigateTo('home')}
                 onNotificationNavigate={handleNotificationNavigate}
             />
-            <main className="max-w-6xl mx-auto pt-20 px-2 sm:px-4">
+            <main className="max-w-7xl mx-auto pt-20 px-2 sm:px-4">
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px] gap-6">
                     <aside className="hidden lg:block sticky top-20 self-start">
                         <Sidebar currentUser={currentUser} allUsers={allUsersList} following={following} onViewProfile={handleViewProfile} onFollowToggle={() => {}} />
