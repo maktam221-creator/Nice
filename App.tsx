@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
@@ -254,6 +255,8 @@ export const App: React.FC = () => {
                 unreadNotificationCount={notifications.filter(n => !n.read).length}
                 onViewProfile={() => handleViewProfile(currentUser)}
                 onGoToHome={() => navigateTo('home')}
+                onGoToShorts={() => navigateTo('shorts')}
+                currentPage={page}
                 onNotificationNavigate={handleNotificationNavigate}
             />
             <main className="max-w-7xl mx-auto pt-20 px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
