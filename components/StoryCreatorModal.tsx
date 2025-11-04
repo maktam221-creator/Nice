@@ -41,11 +41,12 @@ const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({ isOpen, onClose, 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageFile(file);
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -67,7 +68,6 @@ const StoryCreatorModal: React.FC<StoryCreatorModalProps> = ({ isOpen, onClose, 
     setTextContent('');
     setBackgroundColor(backgroundOptions[0]);
     
-    if(imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
     setCaption('');

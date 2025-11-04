@@ -20,25 +20,21 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const file = event.target.files?.[0];
     if (file) {
-      // If a file is already in preview, revoke its URL before creating a new one to prevent memory leaks.
-      if (mediaPreview) {
-        URL.revokeObjectURL(mediaPreview);
-      }
-      
-      setMediaFile(file);
-      setMediaPreview(URL.createObjectURL(file));
-      setMediaType(type);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMediaFile(file);
+        setMediaPreview(reader.result as string);
+        setMediaType(type);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const removeMedia = () => {
-    // When the user manually removes the media, revoke the object URL to clean up.
-    if (mediaPreview) {
-        URL.revokeObjectURL(mediaPreview);
-    }
     setMediaFile(null);
     setMediaPreview(null);
     setMediaType(null);
+    // Reset file input fields
     if (imageInputRef.current) imageInputRef.current.value = "";
     if (videoInputRef.current) videoInputRef.current.value = "";
   };
@@ -46,13 +42,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (postText.trim() || mediaFile) {
-      // Pass the media URL to the parent component.
-      // After this point, the parent component "owns" the URL, and this component
-      // should no longer revoke it.
       onAddPost(postText, mediaFile && mediaPreview ? { url: mediaPreview, type: mediaType! } : undefined);
       
-      // Reset component state for the next post.
-      // We are NOT revoking the URL here because it's now in use by the PostCard.
+      // Reset component state
       setPostText('');
       setMediaFile(null);
       setMediaPreview(null);

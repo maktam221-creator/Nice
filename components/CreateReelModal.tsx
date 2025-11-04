@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { XIcon } from './Icons';
 
@@ -19,16 +20,17 @@ const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAd
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setVideoFile(file);
-      setVideoPreview(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideoFile(file);
+        setVideoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const resetState = () => {
     setVideoFile(null);
-    if(videoPreview) {
-        URL.revokeObjectURL(videoPreview);
-    }
     setVideoPreview(null);
     setCaption('');
     setIsUploading(false);
