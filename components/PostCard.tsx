@@ -1,9 +1,57 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Post, User, Comment } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from './Icons';
 import CommentSection from './CommentSection';
+
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.round(minutes / 60);
+  const days = Math.round(hours / 24);
+  const weeks = Math.round(days / 7);
+  const months = Math.round(days / 30);
+  const years = Math.round(days / 365);
+
+  if (seconds < 5) return 'الآن';
+  if (seconds < 60) return `منذ ${seconds} ثوانٍ`;
+
+  if (minutes < 60) {
+    if (minutes === 1) return `منذ دقيقة`;
+    if (minutes === 2) return `منذ دقيقتين`;
+    if (minutes <= 10) return `منذ ${minutes} دقائق`;
+    return `منذ ${minutes} دقيقة`;
+  }
+  
+  if (hours < 24) {
+    if (hours === 1) return `منذ ساعة`;
+    if (hours === 2) return `منذ ساعتين`;
+    if (hours <= 10) return `منذ ${hours} ساعات`;
+    return `منذ ${hours} ساعة`;
+  }
+
+  if (days < 7) {
+    if (days === 1) return `منذ يوم`;
+    if (days === 2) return `منذ يومين`;
+    return `منذ ${days} أيام`;
+  }
+
+  if (weeks < 5) { // up to 4 weeks
+    if (weeks === 1) return `منذ أسبوع`;
+    if (weeks === 2) return `منذ أسبوعين`;
+    return `منذ ${weeks} أسابيع`;
+  }
+  
+  if (months < 12) {
+    if (months === 1) return `منذ شهر`;
+    if (months === 2) return `منذ شهرين`;
+    return `منذ ${months} أشهر`;
+  }
+
+  if (years === 1) return `منذ سنة`;
+  if (years === 2) return `منذ سنتين`;
+  return `منذ ${years} سنوات`;
+};
 
 interface PostCardProps {
   post: Post;
@@ -48,21 +96,21 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
           <img src={post.author.avatarUrl} alt={post.author.name} className="w-12 h-12 rounded-full" />
           <div>
             <p className="font-bold text-slate-800 group-hover:underline">{post.author.name}</p>
-            <p className="text-sm text-slate-500">{post.timestamp}</p>
+            <p className="text-sm text-slate-500">{formatRelativeTime(post.timestamp)}</p>
           </div>
         </button>
         {isAuthor && (
             <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-full hover:bg-slate-100 text-slate-500">
-                    <EllipsisVerticalIcon className="w-6 h-6" />
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 rounded-full hover:bg-slate-100 text-slate-500">
+                    <EllipsisVerticalIcon className="w-5 h-5" />
                 </button>
                 {menuOpen && (
-                    <div className="absolute left-0 rtl:left-auto rtl:right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-slate-100 animate-fade-in-up origin-top-left rtl:origin-top-right">
-                        <button onClick={() => { onEdit(post); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
-                           <PencilIcon className="w-5 h-5 text-slate-500"/> <span>تعديل</span>
+                    <div className="absolute left-0 rtl:left-auto rtl:right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-10 border border-slate-100 animate-fade-in-up origin-top-left rtl:origin-top-right">
+                        <button onClick={() => { onEdit(post); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+                           <PencilIcon className="w-4 h-4 text-slate-500"/> <span>تعديل</span>
                         </button>
-                        <button onClick={() => { onDelete(post.id); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-3 rtl:space-x-reverse px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                           <TrashIcon className="w-5 h-5"/> <span>حذف</span>
+                        <button onClick={() => { onDelete(post.id); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                           <TrashIcon className="w-4 h-4"/> <span>حذف</span>
                         </button>
                     </div>
                 )}
@@ -86,6 +134,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
       <div className="flex justify-between items-center text-sm text-slate-500 py-2 border-y border-slate-200">
         <span>{post.likes} إعجاب</span>
         <span>{post.comments} تعليقات</span>
+        <span>{post.shares} مشاركات</span>
       </div>
       
       <div className="flex justify-around pt-1">

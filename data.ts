@@ -9,8 +9,6 @@ export const initialUsers: Record<string, User> = {
   'user5': { uid: 'user5', name: 'خالد عبد الله', avatarUrl: 'https://i.pravatar.cc/150?u=user5', isOnline: false, bio: 'مصور فوتوغرافي محترف.' },
 };
 
-export const currentUser: User = initialUsers['user1'];
-
 export const initialPosts: Post[] = [
   {
     id: 1,
@@ -19,7 +17,8 @@ export const initialPosts: Post[] = [
     imageUrl: 'https://picsum.photos/seed/post1/600/400',
     likes: 15,
     comments: 2,
-    timestamp: 'منذ 5 دقائق',
+    shares: 5,
+    timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
     isLiked: false,
     isSaved: true,
   },
@@ -29,7 +28,8 @@ export const initialPosts: Post[] = [
     text: 'متحمسة لبناء هذا التطبيق. لنبدأ!',
     likes: 32,
     comments: 2, // Adjusted comment count
-    timestamp: 'منذ 10 دقائق',
+    shares: 8,
+    timestamp: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
     isLiked: true,
     isSaved: false,
   },
@@ -39,7 +39,8 @@ export const initialPosts: Post[] = [
     text: 'ما هي أفضل استراتيجية استثمار للمبتدئين في عام 2024؟ شاركوني آرائكم.',
     likes: 58,
     comments: 12,
-    timestamp: 'منذ ساعة',
+    shares: 20,
+    timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
     isLiked: false,
     isSaved: false,
   },
@@ -50,7 +51,8 @@ export const initialPosts: Post[] = [
     imageUrl: 'https://picsum.photos/seed/post4/600/400',
     likes: 120,
     comments: 25,
-    timestamp: 'منذ 3 ساعات',
+    shares: 42,
+    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
     isLiked: true,
     isSaved: true,
   },

@@ -1,5 +1,3 @@
-
-
 // Fix: Added optional fields to User type to support profile information.
 export interface User {
   uid: string;
@@ -25,7 +23,8 @@ export interface Post {
   videoUrl?: string;
   likes: number;
   comments: number;
-  timestamp: string;
+  shares: number;
+  timestamp: Date;
   isLiked?: boolean;
   isSaved?: boolean;
 }

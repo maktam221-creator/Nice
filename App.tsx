@@ -1,11 +1,6 @@
-
-
-
-
-
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
-import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
+import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages } from './data';
 import { loadState, saveState } from './contexts/services/storageService';
 
 // Statically import components that are part of the main, initial layout
@@ -46,6 +41,7 @@ const ContentLoader: React.FC = () => (
 export const App: React.FC = () => {
     // --- STATE MANAGEMENT ---
     const [users, setUsers] = useState<Record<string, User>>(() => loadState('maydan_users', initialUsers));
+    const currentUser = users['user1']; // Get the current user from the reactive state
     const [posts, setPosts] = useState<Post[]>(() => loadState('maydan_posts', initialPosts));
     const [comments, setComments] = useState<Record<number, Comment[]>>(() => loadState('maydan_comments', initialComments));
     const [reels, setReels] = useState<Reel[]>(() => loadState('maydan_reels', initialReels));
@@ -58,7 +54,7 @@ export const App: React.FC = () => {
     type Page = 'home' | 'profile' | 'chat' | 'shorts';
     const [page, setPage] = useState<Page>('home');
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
+    const [viewedProfileUid, setViewedProfileUid] = useState<string | null>(null);
     const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
 
     // Modal states
@@ -76,7 +72,7 @@ export const App: React.FC = () => {
     const filteredPosts = useMemo(() => posts.filter(p => p.text.toLowerCase().includes(searchQuery.toLowerCase()) || p.author.name.toLowerCase().includes(searchQuery.toLowerCase())), [posts, searchQuery]);
     const filteredUsers = useMemo(() => {
         return (Object.values(users) as User[]).filter(u => u.uid !== currentUser.uid && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [users, searchQuery]);
+    }, [users, searchQuery, currentUser]);
     const allUsersList = useMemo(() => (Object.values(users) as User[]), [users]);
     const followingUsers = useMemo(() => following.map(uid => users[uid]).filter(Boolean), [following, users]);
 
@@ -93,14 +89,14 @@ export const App: React.FC = () => {
     // --- HANDLER FUNCTIONS ---
     // Navigation
     const handleViewProfile = (user: User) => {
-        setViewedProfileUser(user);
+        setViewedProfileUid(user.uid);
         setPage('profile');
         setSearchQuery('');
     };
 
     const navigateTo = (targetPage: Page) => {
         setPage(targetPage);
-        setViewedProfileUser(null);
+        setViewedProfileUid(null);
         setSearchQuery('');
     };
     
@@ -127,8 +123,9 @@ export const App: React.FC = () => {
             imageUrl: media?.type === 'image' ? media.url : undefined, 
             videoUrl: media?.type === 'video' ? media.url : undefined, 
             likes: 0, 
-            comments: 0, 
-            timestamp: 'الآن', 
+            comments: 0,
+            shares: 0, 
+            timestamp: new Date(), 
             isLiked: false, 
             isSaved: false 
         };
@@ -160,20 +157,18 @@ export const App: React.FC = () => {
         const post = posts.find(p => p.id === postId);
         if (post) {
             const shareUrl = window.location.origin;
-            if (navigator.share) {
-                try {
+            try {
+                if (navigator.share) {
                     await navigator.share({ title: `منشور من ${post.author.name}`, text: post.text, url: shareUrl });
-                } catch (error) {
-                    console.log("Share failed or was cancelled", error);
-                }
-            } else {
-                try {
+                    // On successful share (if not cancelled), increment the count
+                    setPosts(posts.map(p => p.id === postId ? { ...p, shares: (p.shares || 0) + 1 } : p));
+                } else {
                     await navigator.clipboard.writeText(shareUrl);
                     alert('تم نسخ رابط المنشور.');
-                } catch (err) {
-                    console.error('Failed to copy URL:', err);
-                    alert('فشل نسخ رابط المنشور.');
+                    setPosts(posts.map(p => p.id === postId ? { ...p, shares: (p.shares || 0) + 1 } : p));
                 }
+            } catch (error) {
+                console.log("Share failed or was cancelled", error);
             }
         }
     };
@@ -226,7 +221,14 @@ export const App: React.FC = () => {
         if (searchQuery) {
             return <SearchResults users={filteredUsers} posts={filteredPosts} comments={comments} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
         }
-        if (page === 'profile' && viewedProfileUser) {
+        if (page === 'profile') {
+            if (!viewedProfileUid) {
+                 return <div className="text-center p-8">لم يتم تحديد ملف شخصي.</div>;
+            }
+            const viewedProfileUser = users[viewedProfileUid];
+            if (!viewedProfileUser) {
+                return <div className="text-center p-8">المستخدم غير موجود.</div>;
+            }
             const userPosts = posts.filter(p => p.author.uid === viewedProfileUser.uid);
             const userReels = reels.filter(r => r.author.uid === viewedProfileUser.uid);
             const savedPosts = posts.filter(p => p.isSaved);
@@ -308,7 +310,7 @@ export const App: React.FC = () => {
             <BottomNavBar 
                 currentPage={page}
                 searchQuery={searchQuery}
-                viewedProfileUser={viewedProfileUser}
+                viewedProfileUid={viewedProfileUid}
                 currentUser={currentUser}
                 unreadCount={notifications.filter(n => !n.read).length}
                 onHomeClick={() => navigateTo('home')}

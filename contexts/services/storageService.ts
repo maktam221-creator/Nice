@@ -14,6 +14,14 @@ export const loadState = <T>(key: string, defaultValue: T): T => {
         }
         const state = JSON.parse(serializedState);
         
+        // Handle date parsing for posts
+        if (key === 'maydan_posts' && Array.isArray(state)) {
+            return state.map((post: any) => ({
+                ...post,
+                timestamp: new Date(post.timestamp),
+            })) as T;
+        }
+
         // Handle date parsing for stories
         if (key === 'maydan_stories') {
             const parsedStories: Record<string, any[]> = {};
