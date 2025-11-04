@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
@@ -92,9 +93,10 @@ const App: React.FC = () => {
   const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>(() => loadState('maydan_profileViews', initialProfileViews));
   const [notifications, setNotifications] = useState<Notification[]>(() => loadState('maydan_notifications', initialNotifications));
   const [messages, setMessages] = useState<Message[]>(() => loadState('maydan_messages', initialMessages));
-  const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', []));
+  const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', ['user1', 'user2', 'user3', 'user4', 'user5']));
   
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [mainViewTab, setMainViewTab] = useState<'posts' | 'shorts'>('posts');
   const [viewedProfileUser, setViewedProfileUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -103,6 +105,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [chatTargetUser, setChatTargetUser] = useState<User | null>(null);
+  const [desktopChatUser, setDesktopChatUser] = useState<User | null>(null);
   const [isStoryCreatorOpen, setIsStoryCreatorOpen] = useState(false);
   const [isReelCreatorOpen, setIsReelCreatorOpen] = useState(false);
   const [viewingStoryUserKey, setViewingStoryUserKey] = useState<string | null>(null);
@@ -125,20 +128,25 @@ const App: React.FC = () => {
     if (authUser) {
       // In a real app, you would fetch the user's profile from Firestore here.
       // For now, we'll create a profile based on the auth user's info.
-      const userProfile: User = {
-        uid: authUser.uid,
-        name: authUser.displayName || authUser.email?.split('@')[0] || 'مستخدم جديد',
-        avatarUrl: authUser.photoURL || `https://picsum.photos/seed/${authUser.uid}/100/100`,
-        bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.',
-        country: { value: 'السعودية', isPublic: true },
-        gender: { value: 'أفضل عدم القول', isPublic: true },
-        isOnline: true,
-      };
-      setCurrentUser(userProfile);
+      const existingUser = users[authUser.uid];
+      if (existingUser) {
+        setCurrentUser(existingUser);
+      } else {
+         const userProfile: User = {
+          uid: authUser.uid,
+          name: authUser.displayName || authUser.email?.split('@')[0] || 'مستخدم جديد',
+          avatarUrl: authUser.photoURL || `https://picsum.photos/seed/${authUser.uid}/100/100`,
+          bio: 'مرحباً! أنا أستخدم هذا التطبيق الرائع.',
+          country: { value: 'السعودية', isPublic: true },
+          gender: { value: 'أفضل عدم القول', isPublic: true },
+          isOnline: true,
+        };
+        setCurrentUser(userProfile);
+      }
     } else {
       setCurrentUser(null);
     }
-  }, [authUser]);
+  }, [authUser, users]);
 
   useEffect(() => {
     if (currentUser) {
@@ -296,19 +304,23 @@ const App: React.FC = () => {
   
   const handleGoHome = () => {
     setCurrentPage('home');
+    setMainViewTab('posts');
     setViewedProfileUser(null);
     setSearchQuery('');
   };
   
   const handleGoToChat = (user?: User) => {
+    // For desktop, set the target user for the sidebar. For mobile, change page.
+    setDesktopChatUser(user || null);
     setCurrentPage('chat');
+    setChatTargetUser(user || null);
     setViewedProfileUser(null);
     setSearchQuery('');
-    setChatTargetUser(user || null);
   };
   
   const handleGoToShorts = () => {
-    setCurrentPage('shorts');
+    setCurrentPage('home');
+    setMainViewTab('shorts');
     setViewedProfileUser(null);
     setSearchQuery('');
   };
@@ -363,8 +375,6 @@ const App: React.FC = () => {
             break;
         case 'like':
         case 'comment':
-            // In a real app, you'd navigate to the specific post.
-            // For simplicity, we'll just go home.
             handleGoHome();
             break;
     }
@@ -441,11 +451,10 @@ const App: React.FC = () => {
       return { users: [], posts: [] };
     }
     const lowercasedQuery = searchQuery.toLowerCase();
-    // FIX: The type of `user` was being inferred as `unknown`. The original chained `.filter()` call caused a 
-    // type inference issue. By splitting the filter chain, we allow TypeScript to correctly infer that 
-    // `validUsers` is an array of `User` after the type guard is applied.
     const validUsers: User[] = Object.values(users).filter(
-      (user: any): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
+      // FIX: The `user` parameter might be `unknown` when loaded from localStorage.
+      // Cast to `any` to safely access properties for this runtime check.
+      (user: unknown): user is User => !!user && typeof (user as any).name === 'string' && typeof (user as any).uid === 'string'
     );
 
     const filteredUsers = validUsers.filter(user =>
@@ -459,7 +468,6 @@ const App: React.FC = () => {
   }, [searchQuery, users, posts, currentUser]);
   
   const followingUsers = useMemo(() => {
-    // FIX: Add a type guard to ensure the array is of type User[], not (User | undefined)[].
     return following.map(uid => users[uid]).filter((user): user is User => Boolean(user));
   }, [following, users]);
 
@@ -479,6 +487,73 @@ const App: React.FC = () => {
   if (!authUser || !currentUser) {
     return <AuthPage />;
   }
+  
+  const homeFeedContent = (
+      <>
+        <StoriesTray
+            storyGroups={storyGroups}
+            currentUser={currentUser}
+            onViewStories={handleViewStories}
+            onAddStory={() => setIsStoryCreatorOpen(true)}
+         />
+        <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
+        <div className="space-y-6">
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              onLike={handleLikePost}
+              onAddComment={handleAddComment}
+              onShare={handleSharePost}
+              onSave={handleSavePost}
+              currentUser={currentUser}
+              onViewProfile={handleViewProfile}
+              onEdit={handleOpenEditPostModal}
+              onDelete={handleDeletePost}
+            />
+          ))}
+        </div>
+      </>
+  );
+
+  const desktopHomeContent = (
+      <>
+        <div className="bg-white rounded-lg shadow-md mb-6">
+            <div className="border-b border-slate-200">
+                <nav className="-mb-px flex justify-center space-x-8 rtl:space-x-reverse" aria-label="Tabs">
+                    <button
+                        onClick={() => { setCurrentPage('home'); setMainViewTab('posts'); }}
+                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${mainViewTab === 'posts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                    >
+                        <HomeIcon className="w-5 h-5" />
+                        <span>المنشورات</span>
+                    </button>
+                    <button
+                         onClick={() => { setCurrentPage('home'); setMainViewTab('shorts'); }}
+                        className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${mainViewTab === 'shorts' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
+                    >
+                        <VideoCameraIcon className="w-5 h-5" />
+                        <span>الفيديوهات</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+        
+        {mainViewTab === 'posts' && homeFeedContent}
+
+        {mainViewTab === 'shorts' && (
+             <ShortsPage
+                reels={reels}
+                currentUser={currentUser}
+                onLike={handleLikeReel}
+                onAddComment={handleAddReelComment}
+                onShare={handleShareReel}
+                onAddReel={() => setIsReelCreatorOpen(true)}
+                onViewProfile={handleViewProfile}
+            />
+        )}
+      </>
+  );
 
   // Main App
   const renderPage = () => {
@@ -526,6 +601,7 @@ const App: React.FC = () => {
           onDeletePost={handleDeletePost}
         />;
       case 'chat':
+        // This is now primarily for mobile view
         return <ChatPage 
           currentUser={currentUser}
           allUsers={users}
@@ -537,6 +613,7 @@ const App: React.FC = () => {
           onViewProfile={handleViewProfile}
         />;
       case 'shorts':
+        // This is for mobile view
         return <ShortsPage
             reels={reels}
             currentUser={currentUser}
@@ -548,33 +625,7 @@ const App: React.FC = () => {
         />
       case 'home':
       default:
-        return (
-          <>
-            <StoriesTray
-                storyGroups={storyGroups}
-                currentUser={currentUser}
-                onViewStories={handleViewStories}
-                onAddStory={() => setIsStoryCreatorOpen(true)}
-             />
-            <CreatePost onAddPost={handleAddPost} currentUser={currentUser} />
-            <div className="space-y-6">
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  onLike={handleLikePost}
-                  onAddComment={handleAddComment}
-                  onShare={handleSharePost}
-                  onSave={handleSavePost}
-                  currentUser={currentUser}
-                  onViewProfile={handleViewProfile}
-                  onEdit={handleOpenEditPostModal}
-                  onDelete={handleDeletePost}
-                />
-              ))}
-            </div>
-          </>
-        );
+        return homeFeedContent;
     }
   };
 
@@ -641,14 +692,25 @@ const App: React.FC = () => {
         </aside>
 
         <main className="w-full max-w-xl">
-          {renderPage()}
+            <div className="lg:hidden">
+                {renderPage()}
+            </div>
+            <div className="hidden lg:block">
+                {searchQuery.trim() || currentPage === 'profile' ? renderPage() : desktopHomeContent}
+            </div>
         </main>
         
         <aside className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-24">
                 <RightSidebar
+                    currentUser={currentUser}
+                    allUsers={users}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
                     followingUsers={followingUsers}
                     onViewProfile={handleViewProfile}
+                    initialTargetUser={desktopChatUser}
+                    onClearTargetUser={() => setDesktopChatUser(null)}
                 />
             </div>
         </aside>
@@ -661,10 +723,10 @@ const App: React.FC = () => {
         currentUser={currentUser}
         unreadCount={unreadNotificationsCount}
         onHomeClick={handleGoHome}
-        onShortsClick={handleGoToShorts}
+        onShortsClick={() => setCurrentPage('shorts')}
         onNotificationsClick={() => setIsNotificationsOpen(p => !p)}
         onProfileClick={handleGoToMyProfile}
-        onChatClick={handleGoToChat}
+        onChatClick={() => setCurrentPage('chat')}
       />
       
       {isEditModalOpen && (
