@@ -577,18 +577,19 @@ const App: React.FC = () => {
   return (
     <div className="bg-slate-100 min-h-screen pb-16 lg:pb-0">
       <header className="bg-white shadow-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <button onClick={handleGoHome}>
-                <h1 className="text-2xl font-bold text-indigo-600">Maydan</h1>
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 sm:gap-4">
+            <button onClick={handleGoHome} className="shrink-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-indigo-600">Maydan</h1>
             </button>
-            <div className="relative w-full max-w-xs hidden lg:block">
+            
+            <div className="relative w-full flex-1 max-w-lg">
                 <input
                     type="text"
                     ref={searchInputRef}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="ابحث عن أصدقاء أو منشورات..."
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                    placeholder="ابحث..."
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm sm:text-base"
                 />
                 <SearchIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 {searchQuery && (
@@ -597,7 +598,8 @@ const App: React.FC = () => {
                      </button>
                 )}
             </div>
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            
+            <div className="flex items-center space-x-0 sm:space-x-2 rtl:space-x-reverse">
                 <div ref={notificationButtonRef} className="relative">
                     <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full hover:bg-slate-100 transition-colors hidden sm:block">
                         <BellIcon className="w-6 h-6 text-slate-600"/>
@@ -608,7 +610,7 @@ const App: React.FC = () => {
                         )}
                     </button>
                 </div>
-                <button onClick={handleGoToMyProfile} className="flex items-center space-x-2 rtl:space-x-reverse p-1 pr-3 rounded-full hover:bg-slate-100 transition-colors hidden sm:flex">
+                <button onClick={handleGoToMyProfile} className="flex items-center space-x-2 rtl:space-x-reverse p-1 sm:pr-3 rounded-full hover:bg-slate-100 transition-colors hidden sm:flex">
                     <span className="font-semibold text-slate-700 text-sm hidden md:block">{currentUser.name}</span>
                     <img src={currentUser.avatarUrl} alt="ملف شخصي" className="w-9 h-9 rounded-full" />
                 </button>
