@@ -161,7 +161,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
         </button>
         <button 
           onClick={() => onSave(post.id)}
-          className="flex-1 hidden sm:flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
+          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
         >
           <BookmarkIcon className={`w-6 h-6 transition-colors ${post.isSaved ? 'text-blue-500 fill-current' : 'group-hover:text-blue-500'}`} />
           <span className={`font-semibold transition-colors ${post.isSaved ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>حفظ</span>
