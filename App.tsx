@@ -5,8 +5,7 @@ import { loadState, saveState } from './contexts/services/storageService';
 
 // Statically import components that are part of the main, initial layout
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import RightSidebar from './components/RightSidebar';
+// Sidebar and RightSidebar are no longer used in the main layout
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import BottomNavBar from './components/BottomNavBar';
@@ -236,19 +235,11 @@ export const App: React.FC = () => {
                 onGoToHome={() => navigateTo('home')}
                 onNotificationNavigate={handleNotificationNavigate}
             />
-            <main className="max-w-7xl mx-auto pt-20 px-2 sm:px-4">
-                <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px] gap-6">
-                    <aside className="hidden lg:block sticky top-20 self-start">
-                        <Sidebar currentUser={currentUser} allUsers={allUsersList} following={following} onViewProfile={handleViewProfile} onFollowToggle={() => {}} />
-                    </aside>
-                    <div className="min-w-0">
-                        <Suspense fallback={<ContentLoader />}>
-                            {renderMainContent()}
-                        </Suspense>
-                    </div>
-                    <aside className="hidden xl:block sticky top-20 self-start">
-                        <RightSidebar currentUser={currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} onViewProfile={handleViewProfile} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} />
-                    </aside>
+            <main className="max-w-4xl mx-auto pt-20 px-2 sm:px-4">
+                <div className="min-w-0">
+                    <Suspense fallback={<ContentLoader />}>
+                        {renderMainContent()}
+                    </Suspense>
                 </div>
             </main>
             <BottomNavBar 
