@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { User, Post, Reel, Comment } from '../types';
 import PostCard from './PostCard';
@@ -17,7 +18,7 @@ interface ProfilePageProps {
   onSave: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
-  onAddPost: (text: string, imageUrl?: string) => void;
+  onAddPost: (text: string, media?: { url: string; type: 'image' | 'video' }) => void;
   currentUser: User;
   handleViewProfile: (user: User) => void;
   onEditProfile: () => void;

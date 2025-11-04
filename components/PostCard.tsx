@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Post, User, Comment } from '../types';
 import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from './Icons';
@@ -71,8 +72,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
       <p className="text-slate-700 whitespace-pre-wrap mb-4">{post.text}</p>
       
       {post.imageUrl && (
-        <div className="my-4">
-          <img src={post.imageUrl} alt="محتوى المنشور" className="rounded-lg w-full object-cover" />
+        <div className="my-4 max-h-[600px] overflow-hidden rounded-lg">
+          <img src={post.imageUrl} alt="محتوى المنشور" className="w-full h-full object-cover" />
+        </div>
+      )}
+
+      {post.videoUrl && (
+        <div className="my-4 bg-black rounded-lg">
+           <video src={post.videoUrl} controls className="w-full max-h-[600px] rounded-lg" />
         </div>
       )}
 

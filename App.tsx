@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
@@ -116,8 +117,19 @@ export const App: React.FC = () => {
     };
 
     // Post Interactions
-    const handleAddPost = (text: string, imageUrl?: string) => {
-        const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, comments: 0, timestamp: 'الآن', isLiked: false, isSaved: false };
+    const handleAddPost = (text: string, media?: { url: string; type: 'image' | 'video' }) => {
+        const newPost: Post = { 
+            id: Date.now(), 
+            author: currentUser, 
+            text, 
+            imageUrl: media?.type === 'image' ? media.url : undefined, 
+            videoUrl: media?.type === 'video' ? media.url : undefined, 
+            likes: 0, 
+            comments: 0, 
+            timestamp: 'الآن', 
+            isLiked: false, 
+            isSaved: false 
+        };
         setPosts([newPost, ...posts]);
     };
     const handleLikePost = (postId: number) => setPosts(posts.map(p => p.id === postId ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 } : p));
