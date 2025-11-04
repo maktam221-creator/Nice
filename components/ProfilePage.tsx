@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef } from 'react';
-import { User, Post, Reel } from '../types';
+import { User, Post, Reel, Comment } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
@@ -13,6 +13,7 @@ interface ProfilePageProps {
   posts: Post[];
   reels: Reel[];
   savedPosts: Post[];
+  comments: Record<number, Comment[]>;
   onLike: (postId: number) => void;
   onSave: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
@@ -31,7 +32,7 @@ interface ProfilePageProps {
   onDeletePost: (postId: number) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar, onEditPost, onDeletePost }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, comments, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar, onEditPost, onDeletePost }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
@@ -202,7 +203,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
             posts.length > 0 ? (
                 <div className="space-y-6">
                     {posts.map(post => (
-                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
+                        <PostCard key={post.id} post={post} comments={comments[post.id] || []} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
                     ))}
                 </div>
             ) : (
@@ -232,7 +233,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
             savedPosts.length > 0 ? (
                 <div className="space-y-6">
                     {savedPosts.map(post => (
-                        <PostCard key={post.id} post={post} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
+                        <PostCard key={post.id} post={post} comments={comments[post.id] || []} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
                     ))}
                 </div>
             ) : (

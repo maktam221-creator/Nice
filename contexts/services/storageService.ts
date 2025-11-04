@@ -14,13 +14,28 @@ export const loadState = <T>(key: string, defaultValue: T): T => {
         }
         const state = JSON.parse(serializedState);
         
-        // Dates are stringified by JSON.stringify. We need to parse them back.
-        if (key === 'maydan_stories' && Array.isArray(state)) {
-            return state.map((story: any) => ({
-                ...story,
-                timestamp: new Date(story.timestamp),
+        // Handle date parsing for stories
+        if (key === 'maydan_stories') {
+            const parsedStories: Record<string, any[]> = {};
+            for (const userId in state) {
+                if (Object.prototype.hasOwnProperty.call(state, userId)) {
+                    parsedStories[userId] = state[userId].map((story: any) => ({
+                        ...story,
+                        timestamp: new Date(story.timestamp),
+                    }));
+                }
+            }
+            return parsedStories as T;
+        }
+
+        // Handle date parsing for messages
+        if (key === 'maydan_messages' && Array.isArray(state)) {
+            return state.map((message: any) => ({
+                ...message,
+                timestamp: new Date(message.timestamp),
             })) as T;
         }
+
         return state;
     } catch (err) {
         console.error(`Error loading state from localStorage for key "${key}":`, err);

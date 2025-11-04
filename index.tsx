@@ -1,9 +1,9 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Fix: The error on the next line indicates 'App' is not a named export. It should be a default import.
-// Fix: Changed to a named import as 'App' is a named export.
 import { App } from './App';
+import { AuthProvider } from './contexts/AuthContext';
+import { EnvironmentChecker } from './components/EnvironmentChecker';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -13,6 +13,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <EnvironmentChecker>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </EnvironmentChecker>
   </React.StrictMode>
 );

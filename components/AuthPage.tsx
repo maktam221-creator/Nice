@@ -17,7 +17,7 @@ const AuthPage: React.FC = () => {
     if (err instanceof FirebaseError) {
         switch (err.code) {
             case 'auth/invalid-api-key':
-                return 'إعدادات Firebase غير صحيحة. يرجى التأكد من أن متغيرات البيئة الخاصة بـ Firebase تم إعدادها بشكل صحيح.';
+                return 'مفتاح Firebase API غير صالح. يرجى التأكد من إضافة متغيرات البيئة الصحيحة (مثل FIREBASE_API_KEY) في إعدادات مشروعك على Vercel.';
             case 'auth/invalid-email':
                 return 'البريد الإلكتروني غير صالح.';
             case 'auth/user-not-found':

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { XIcon, CogIcon, ShieldCheckIcon, KeyIcon, UserCircleIcon, ChevronLeftIcon, ChevronRightIcon } from './Icons';
+import { XIcon, CogIcon, ShieldCheckIcon, KeyIcon, UserCircleIcon, ChevronLeftIcon, ChevronRightIcon, LogoutIcon } from './Icons';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => Promise<void>;
 }
 
 type SettingsView = 'main' | 'privacy' | 'password' | 'account';
@@ -24,7 +25,7 @@ const ToggleSwitch: React.FC<{ label: string }> = ({ label }) => {
 };
 
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onLogout }) => {
   const [activeView, setActiveView] = useState<SettingsView>('main');
 
   // Reset view when modal is closed
@@ -55,26 +56,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
 
   const renderMainView = () => (
-    <div className="space-y-2">
-        {settingsOptions.map((option) => (
+    <>
+        <div className="space-y-2">
+            {settingsOptions.map((option) => (
+                <button 
+                    key={option.name} 
+                    onClick={() => setActiveView(option.view)}
+                    className="w-full text-right p-3 flex items-center justify-between space-x-4 rtl:space-x-reverse rounded-lg hover:bg-slate-100 transition-colors"
+                    aria-label={option.name}
+                >
+                    <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                            <option.icon className="w-6 h-6 text-slate-600" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-semibold text-slate-800">{option.name}</p>
+                        </div>
+                    </div>
+                    <ChevronLeftIcon className="w-5 h-5 text-slate-400" />
+                </button>
+            ))}
+        </div>
+        <div className="border-t pt-2 mt-2">
             <button 
-                key={option.name} 
-                onClick={() => setActiveView(option.view)}
-                className="w-full text-right p-3 flex items-center justify-between space-x-4 rtl:space-x-reverse rounded-lg hover:bg-slate-100 transition-colors"
-                aria-label={option.name}
+                onClick={onLogout}
+                className="w-full text-right p-3 flex items-center space-x-4 rtl:space-x-reverse rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                aria-label="تسجيل الخروج"
             >
-                <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                        <option.icon className="w-6 h-6 text-slate-600" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-semibold text-slate-800">{option.name}</p>
-                    </div>
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                    <LogoutIcon className="w-6 h-6" />
                 </div>
-                <ChevronLeftIcon className="w-5 h-5 text-slate-400" />
+                <div className="flex-1">
+                    <p className="font-semibold">تسجيل الخروج</p>
+                </div>
             </button>
-        ))}
-    </div>
+        </div>
+    </>
   );
   
   const renderPrivacyView = () => (

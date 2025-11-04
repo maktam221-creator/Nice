@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Post } from '../types';
+import { User, Post, Comment } from '../types';
 import PostCard from './PostCard';
 import { UserPlusIcon } from './Icons';
 
@@ -7,6 +7,7 @@ interface SearchResultsProps {
   users: User[];
   posts: Post[];
   currentUser: User;
+  comments: Record<number, Comment[]>;
   onViewProfile: (user: User) => void;
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
@@ -51,7 +52,7 @@ const UserResultCard: React.FC<UserResultCardProps> = ({ user, onViewProfile, is
 };
 
 
-const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser, onViewProfile, onLike, onAddComment, onShare, onSave, onEdit, onDelete, query, following, onFollowToggle }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser, comments, onViewProfile, onLike, onAddComment, onShare, onSave, onEdit, onDelete, query, following, onFollowToggle }) => {
   if (users.length === 0 && posts.length === 0) {
     return (
       <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
@@ -87,6 +88,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ users, posts, currentUser
               <PostCard
                 key={post.id}
                 post={post}
+                comments={comments[post.id] || []}
                 onLike={onLike}
                 onAddComment={onAddComment}
                 onShare={onShare}

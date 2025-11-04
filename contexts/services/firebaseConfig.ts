@@ -3,17 +3,16 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-// هام: يجب توفير إعدادات Firebase كمتغيرات بيئة (environment variables).
-// تأكد من أن هذه المتغيرات مُعرفة في بيئة التشغيل الخاصة بك.
+// The user provided these values to make the app work.
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "YOUR_API_KEY_HERE",
-  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN_HERE",
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "YOUR_DATABASE_URL_HERE",
-  projectId: process.env.FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID_HERE",
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET_HERE",
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID_HERE",
-  appId: process.env.FIREBASE_APP_ID || "YOUR_APP_ID_HERE",
-  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "YOUR_MEASUREMENT_ID_HERE"
+  apiKey: "AIzaSyDigKrx3vGUjj1PY9wkZaUyRPv4gin_QyY",
+  authDomain: "vibe-2f27b.firebaseapp.com",
+  databaseURL: "https://vibe-2f27b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "vibe-2f27b",
+  storageBucket: "vibe-2f27b.firebasestorage.app",
+  messagingSenderId: "1052204016227",
+  appId: "1:1052204016227:web:f78e24ea0f40272a4e8e56",
+  measurementId: "G-C7SE3KGGPT"
 };
 
 // تهيئة Firebase

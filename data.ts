@@ -1,8 +1,7 @@
-
 import { User, Post, Reel, Story, Notification, Message, Comment } from './types';
 
 export const initialUsers: Record<string, User> = {
-  'guest-user': { uid: 'guest-user', name: 'زائر', avatarUrl: 'https://i.pravatar.cc/150?u=guest-user', bio: 'مستكشف في عالم ميدان.', country: { value: 'الأردن', isPublic: true }, gender: { value: 'أفضل عدم القول', isPublic: true } },
+  // Guest user removed to support authentication flow
   'user1': { uid: 'user1', name: 'أحمد محمود', avatarUrl: 'https://i.pravatar.cc/150?u=user1', isOnline: true, bio: 'مطور ويب وشغوف بالتقنية.', country: { value: 'مصر', isPublic: true }, gender: { value: 'ذكر', isPublic: true } },
   'user2': { uid: 'user2', name: 'فاطمة الزهراء', avatarUrl: 'https://i.pravatar.cc/150?u=user2', isOnline: false, bio: 'مصممة جرافيك ومحبة للفن.', country: { value: 'السعودية', isPublic: true }, gender: { value: 'أنثى', isPublic: true } },
   'user3': { uid: 'user3', name: 'علي حسن', avatarUrl: 'https://i.pravatar.cc/150?u=user3', isOnline: true, bio: 'رائد أعمال ومهتم بالاستثمار.' },
@@ -27,7 +26,7 @@ export const initialPosts: Post[] = [
     author: initialUsers['user2'],
     text: 'متحمسة لبناء هذا التطبيق. لنبدأ!',
     likes: 32,
-    comments: 3,
+    comments: 2, // Adjusted comment count
     timestamp: 'منذ 10 دقائق',
     isLiked: true,
     isSaved: false,
@@ -62,7 +61,6 @@ export const initialComments: Record<number, Comment[]> = {
     ],
     2: [
         { id: 201, author: initialUsers['user1'], text: 'بالتوفيق يا فاطمة!' },
-        { id: 202, author: initialUsers['guest-user'], text: 'بداية موفقة.' },
         { id: 203, author: initialUsers['user4'], text: 'هيا بنا!' },
     ],
     3: [],
@@ -118,6 +116,6 @@ export const initialNotifications: Notification[] = [
 ];
 
 export const initialMessages: Message[] = [
-    { id: 1, senderKey: 'user2', receiverKey: 'guest-user', text: 'مرحباً! كيف حالك؟', timestamp: new Date(Date.now() - 60000 * 5) },
-    { id: 2, senderKey: 'guest-user', receiverKey: 'user2', text: 'أهلاً! أنا بخير، شكراً لسؤالك.', timestamp: new Date(Date.now() - 60000 * 4) },
+    { id: 1, senderKey: 'user2', receiverKey: 'user1', text: 'مرحباً يا أحمد! كيف حالك؟', timestamp: new Date(Date.now() - 60000 * 5) },
+    { id: 2, senderKey: 'user1', receiverKey: 'user2', text: 'أهلاً يا فاطمة! أنا بخير، شكراً لسؤالك.', timestamp: new Date(Date.now() - 60000 * 4) },
 ];
