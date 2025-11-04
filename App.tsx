@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
@@ -132,6 +133,21 @@ export const App: React.FC = () => {
             isSaved: false 
         };
         setPosts([newPost, ...posts]);
+
+        // If it's a video, also create a Reel so it appears in the Shorts feed
+        if (media?.type === 'video' && media.url) {
+            const newReel: Reel = {
+                id: Date.now() + 1, // Use a slightly different ID to avoid potential key conflicts
+                author: currentUser,
+                videoUrl: media.url,
+                caption: text,
+                likes: 0,
+                shares: 0,
+                isLiked: false,
+                comments: []
+            };
+            setReels([newReel, ...reels]);
+        }
     };
     const handleLikePost = (postId: number) => setPosts(posts.map(p => p.id === postId ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 } : p));
     const handleSavePost = (postId: number) => setPosts(posts.map(p => p.id === postId ? { ...p, isSaved: !p.isSaved } : p));
