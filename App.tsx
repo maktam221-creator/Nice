@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
@@ -273,9 +275,11 @@ const App: React.FC = () => {
         const viewer = currentUser;
         setProfileViews(prev => {
             const viewsForUser = prev[user.uid] || [];
-            if (viewsForUser.length > 0 && viewsForUser[0].viewer.uid === viewer.uid) { return prev; }
+            // Remove any previous view from the same viewer to update their position and timestamp
+            const otherViews = viewsForUser.filter(view => view.viewer.uid !== viewer.uid);
             const newView: ProfileView = { viewer, timestamp: new Date().toISOString() };
-            const newViews = [newView, ...viewsForUser];
+            // Add the new/updated view to the top of the list
+            const newViews = [newView, ...otherViews];
             return { ...prev, [user.uid]: newViews };
         });
     }
@@ -395,7 +399,6 @@ const App: React.FC = () => {
   
   const storyUsers = useMemo(() => {
     const userKeysWithStories = [...new Set(stories.map(s => s.authorKey))];
-    // Fix: Use a type guard to filter out undefined users and correctly type the result.
     return userKeysWithStories
       .map(key => users[key])
       .filter((user): user is User => Boolean(user));
@@ -450,7 +453,8 @@ const App: React.FC = () => {
   }, [searchQuery, users, posts, currentUser]);
   
   const followingUsers = useMemo(() => {
-    return following.map(uid => users[uid]).filter(Boolean);
+    // FIX: Add a type guard to ensure the array is of type User[], not (User | undefined)[].
+    return following.map(uid => users[uid]).filter((user): user is User => Boolean(user));
   }, [following, users]);
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
