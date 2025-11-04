@@ -65,23 +65,6 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                             Maydan
                         </button>
 
-                        {/* Search Bar (Desktop) */}
-                        <div className="hidden sm:flex items-center relative">
-                            <SearchIcon className="absolute right-3 rtl:right-auto rtl:left-3 w-5 h-5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="ابحث عن منشورات..."
-                                value={searchQuery}
-                                onChange={(e) => onSearchChange(e.target.value)}
-                                className="w-full bg-slate-100 border border-transparent rounded-full py-2 pr-10 rtl:pr-4 rtl:pl-10 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white"
-                            />
-                            {searchQuery && (
-                                <button onClick={() => onSearchChange('')} className="absolute left-3 rtl:left-auto rtl:right-3 p-1">
-                                    <XCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                                </button>
-                            )}
-                        </div>
-
                         {/* Search Bar (Mobile - when active) */}
                         {isMobileSearchOpen && (
                             <div className="flex sm:hidden items-center relative w-full">
@@ -99,7 +82,23 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                     </div>
                     
                     {/* --- CENTER SECTION (Desktop Nav) --- */}
-                    <div className="hidden lg:flex items-center justify-center flex-1 space-x-2 rtl:space-x-reverse">
+                    <div className="hidden lg:flex items-center justify-center flex-1 space-x-4 rtl:space-x-reverse">
+                        {/* Search Bar (Desktop) */}
+                        <div className="flex items-center relative">
+                            <SearchIcon className="absolute right-3 rtl:right-auto rtl:left-3 w-5 h-5 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="ابحث عن منشورات..."
+                                value={searchQuery}
+                                onChange={(e) => onSearchChange(e.target.value)}
+                                className="w-full bg-slate-100 border border-transparent rounded-full py-2 pr-10 rtl:pr-4 rtl:pl-10 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => onSearchChange('')} className="absolute left-3 rtl:left-auto rtl:right-3 p-1">
+                                    <XCircleIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={onGoToHome}
                             className={`${navButtonStyle} ${currentPage === 'home' && !searchQuery ? activeNavButtonStyle : inactiveNavButtonStyle}`}
