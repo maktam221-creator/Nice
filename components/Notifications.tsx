@@ -6,6 +6,7 @@ interface NotificationsProps {
   notifications: Notification[];
   onClose: () => void;
   onNavigate: (notification: Notification) => void;
+  className?: string;
 }
 
 const NotificationIcon: React.FC<{ type: NotificationType }> = ({ type }) => {
@@ -37,9 +38,9 @@ const getNotificationText = (notification: Notification): React.ReactNode => {
     }
 }
 
-const Notifications: React.FC<NotificationsProps> = ({ notifications, onClose, onNavigate }) => {
+const Notifications: React.FC<NotificationsProps> = ({ notifications, onClose, onNavigate, className }) => {
   return (
-    <div className="absolute top-14 right-0 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-slate-200 z-30">
+    <div className={className || "absolute top-14 right-0 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-slate-200 z-30"}>
         <div className="p-4 border-b">
             <h3 className="font-bold text-slate-800">الإشعارات</h3>
         </div>

@@ -21,6 +21,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChange, notifications, unreadNotificationCount, onViewProfile, onGoToHome, onGoToShorts, currentPage, onNotificationNavigate }) => {
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const notificationsRef = useRef<HTMLDivElement>(null);
+    const mobileNotificationsRef = useRef<HTMLDivElement>(null);
+
 
     // Mobile search state
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
@@ -28,7 +30,10 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const isOutsideDesktop = !notificationsRef.current?.contains(target);
+            const isOutsideMobile = !mobileNotificationsRef.current?.contains(target);
+            if (isOutsideDesktop && isOutsideMobile) {
                 setIsNotificationsOpen(false);
             }
         };
@@ -49,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
         setIsNotificationsOpen(false);
     }
 
-    const navButtonStyle = "flex items-center space-x-2 rtl:space-x-reverse px-6 py-2 rounded-lg transition-colors font-semibold text-base";
+    const navButtonStyle = "flex items-center space-x-2 rtl:space-x-reverse px-4 py-2 rounded-lg transition-colors font-semibold text-base";
     const activeNavButtonStyle = "bg-indigo-100 text-indigo-700";
     const inactiveNavButtonStyle = "text-slate-600 hover:bg-slate-100";
 
@@ -99,22 +104,52 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                                 </button>
                             )}
                         </div>
-                        <button
-                            onClick={onGoToHome}
-                            className={`${navButtonStyle} ${currentPage === 'home' && !searchQuery ? activeNavButtonStyle : inactiveNavButtonStyle}`}
-                            aria-current={currentPage === 'home' && !searchQuery ? 'page' : undefined}
-                        >
-                            <HomeIcon className="w-6 h-6" />
-                            <span>الرئيسية</span>
-                        </button>
-                        <button
-                            onClick={onGoToShorts}
-                            className={`${navButtonStyle} ${currentPage === 'shorts' ? activeNavButtonStyle : inactiveNavButtonStyle}`}
-                            aria-current={currentPage === 'shorts' ? 'page' : undefined}
-                        >
-                            <VideoCameraIcon className="w-6 h-6" />
-                            <span>فيديوهات</span>
-                        </button>
+                        <nav className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <button
+                                onClick={onGoToHome}
+                                className={`${navButtonStyle} ${currentPage === 'home' && !searchQuery ? activeNavButtonStyle : inactiveNavButtonStyle}`}
+                                aria-current={currentPage === 'home' && !searchQuery ? 'page' : undefined}
+                            >
+                                <HomeIcon className="w-6 h-6" />
+                                <span>الرئيسية</span>
+                            </button>
+                            <button
+                                onClick={onGoToShorts}
+                                className={`${navButtonStyle} ${currentPage === 'shorts' ? activeNavButtonStyle : inactiveNavButtonStyle}`}
+                                aria-current={currentPage === 'shorts' ? 'page' : undefined}
+                            >
+                                <VideoCameraIcon className="w-6 h-6" />
+                                <span>فيديوهات</span>
+                            </button>
+                             <div className="relative" ref={notificationsRef}>
+                                <button
+                                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                    className={`${navButtonStyle} ${inactiveNavButtonStyle} relative`}
+                                >
+                                    <BellIcon className="w-6 h-6" />
+                                     <span>الإشعارات</span>
+                                    {unreadNotificationCount > 0 && (
+                                        <span className="absolute top-1 right-3 rtl:right-auto rtl:left-3 flex justify-center items-center w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full border-2 border-white">
+                                            {unreadNotificationCount}
+                                        </span>
+                                    )}
+                                </button>
+                                {isNotificationsOpen && (
+                                    <NotificationsPanel
+                                        notifications={notifications}
+                                        onClose={() => setIsNotificationsOpen(false)}
+                                        onNavigate={handleNotificationClick}
+                                        className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-slate-200 z-30"
+                                    />
+                                )}
+                            </div>
+                            <button onClick={() => onViewProfile(currentUser)} 
+                                className={`${navButtonStyle} ${currentPage === 'profile' && !searchQuery ? activeNavButtonStyle : inactiveNavButtonStyle}`}
+                                >
+                                <UserCircleIcon className="w-6 h-6" />
+                                <span>ملفي الشخصي</span>
+                            </button>
+                        </nav>
                     </div>
 
 
@@ -131,7 +166,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                         
                         {/* Other Icons - hide on mobile when search is open */}
                         <div className={`items-center space-x-2 rtl:space-x-reverse ${isMobileSearchOpen ? 'hidden sm:flex' : 'flex'}`}>
-                            <div className="relative" ref={notificationsRef}>
+                            <div className="relative lg:hidden" ref={mobileNotificationsRef}>
                                 <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="p-2 rounded-full hover:bg-slate-100 transition-colors">
                                     <BellIcon className="w-6 h-6 text-slate-600" />
                                     {unreadNotificationCount > 0 && (
@@ -148,7 +183,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, searchQuery, onSearchChang
                                     />
                                 )}
                             </div>
-                            <button onClick={() => onViewProfile(currentUser)} className="p-2 rounded-full hover:bg-slate-100 transition-colors hidden sm:block">
+                            <button onClick={() => onViewProfile(currentUser)} className="p-2 rounded-full hover:bg-slate-100 transition-colors hidden sm:block lg:hidden">
                                 <UserCircleIcon className="w-6 h-6 text-slate-600" />
                             </button>
                             <button onClick={() => onViewProfile(currentUser)} className="sm:hidden">
