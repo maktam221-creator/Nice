@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
@@ -5,7 +6,8 @@ import { loadState, saveState } from './contexts/services/storageService';
 
 // Statically import components that are part of the main, initial layout
 import Header from './components/Header';
-// Sidebar and RightSidebar are no longer used in the main layout
+import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
 import BottomNavBar from './components/BottomNavBar';
@@ -46,9 +48,7 @@ export const App: React.FC = () => {
     const [stories, setStories] = useState<Record<string, Story[]>>(() => loadState('maydan_stories', initialStories));
     const [notifications, setNotifications] = useState<Notification[]>(() => loadState('maydan_notifications', initialNotifications));
     const [messages, setMessages] = useState<Message[]>(() => loadState('maydan_messages', initialMessages));
-    
-    // In the initial design, following list is static for demo purposes.
-    const following = useMemo(() => ['user2', 'user4'], []);
+    const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', ['user2', 'user4']));
 
     // Page and navigation state
     type Page = 'home' | 'profile' | 'chat' | 'shorts';
@@ -84,6 +84,7 @@ export const App: React.FC = () => {
     useEffect(() => { saveState('maydan_stories', stories); }, [stories]);
     useEffect(() => { saveState('maydan_notifications', notifications); }, [notifications]);
     useEffect(() => { saveState('maydan_messages', messages); }, [messages]);
+    useEffect(() => { saveState('maydan_following', following); }, [following]);
     
     // --- HANDLER FUNCTIONS ---
     // Navigation
@@ -156,6 +157,13 @@ export const App: React.FC = () => {
 
     // User & Profile Interactions
     const handleUpdateUser = (updatedUser: User) => setUsers(prev => ({...prev, [updatedUser.uid]: updatedUser }));
+    const handleFollowToggle = (userUid: string) => {
+        setFollowing(prev => 
+            prev.includes(userUid) 
+                ? prev.filter(id => id !== userUid) 
+                : [...prev, userUid]
+        );
+    };
     
     // Story Interactions
     const handleAddStory = (storyData: { type: 'image' | 'text'; content: string; caption?: string; backgroundColor?: string; }) => {
@@ -186,13 +194,13 @@ export const App: React.FC = () => {
     // --- RENDER LOGIC ---
     const renderMainContent = () => {
         if (searchQuery) {
-            return <SearchResults users={filteredUsers} posts={filteredPosts} comments={comments} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} query={searchQuery} following={following} onFollowToggle={() => {}} />;
+            return <SearchResults users={filteredUsers} posts={filteredPosts} comments={comments} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
         }
         if (page === 'profile' && viewedProfileUser) {
             const userPosts = posts.filter(p => p.author.uid === viewedProfileUser.uid);
             const userReels = reels.filter(r => r.author.uid === viewedProfileUser.uid);
             const savedPosts = posts.filter(p => p.isSaved);
-            return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} comments={comments} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} handleViewProfile={handleViewProfile} onEditProfile={() => setIsEditProfileModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={(user) => { setPage('chat'); setChatTargetUser(user); }} following={following} onFollowToggle={() => {}} viewers={[{viewer: users['user2'], timestamp: 'منذ 5 دقائق'}]} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />;
+            return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} comments={comments} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} handleViewProfile={handleViewProfile} onEditProfile={() => setIsEditProfileModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={(user) => { setPage('chat'); setChatTargetUser(user); }} following={following} onFollowToggle={handleFollowToggle} viewers={[{viewer: users['user2'], timestamp: 'منذ 5 دقائق'}]} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />;
         }
         if (page === 'shorts') {
             return <ShortsPage reels={reels} currentUser={currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsCreateReelModalOpen(true)} onViewProfile={handleViewProfile} />;
@@ -235,12 +243,35 @@ export const App: React.FC = () => {
                 onGoToHome={() => navigateTo('home')}
                 onNotificationNavigate={handleNotificationNavigate}
             />
-            <main className="max-w-4xl mx-auto pt-20 px-2 sm:px-4">
-                <div className="min-w-0">
+            <main className="max-w-7xl mx-auto pt-20 px-4 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <aside className="hidden lg:block lg:col-span-3">
+                    <Sidebar 
+                        currentUser={currentUser}
+                        allUsers={allUsersList}
+                        following={following}
+                        onViewProfile={handleViewProfile}
+                        onFollowToggle={handleFollowToggle}
+                    />
+                </aside>
+                
+                <div className="lg:col-span-6 min-w-0">
                     <Suspense fallback={<ContentLoader />}>
                         {renderMainContent()}
                     </Suspense>
                 </div>
+
+                <aside className="hidden lg:block lg:col-span-3">
+                    <RightSidebar 
+                        currentUser={currentUser}
+                        allUsers={users}
+                        messages={messages}
+                        onSendMessage={handleSendMessage}
+                        followingUsers={followingUsers}
+                        onViewProfile={handleViewProfile}
+                        initialTargetUser={chatTargetUser}
+                        onClearTargetUser={() => setChatTargetUser(null)}
+                    />
+                </aside>
             </main>
             <BottomNavBar 
                 currentPage={page}
