@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef } from 'react';
 import { User } from '../types';
 import { PhotoIcon, VideoCameraIcon, XCircleIcon } from './Icons';
@@ -21,6 +20,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const file = event.target.files?.[0];
     if (file) {
+      // If a file is already in preview, revoke its URL before creating a new one to prevent memory leaks.
       if (mediaPreview) {
         URL.revokeObjectURL(mediaPreview);
       }
@@ -32,8 +32,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
   };
 
   const removeMedia = () => {
+    // When the user manually removes the media, revoke the object URL to clean up.
     if (mediaPreview) {
-      URL.revokeObjectURL(mediaPreview);
+        URL.revokeObjectURL(mediaPreview);
     }
     setMediaFile(null);
     setMediaPreview(null);
@@ -45,11 +46,19 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (postText.trim() || mediaFile) {
-      // Since we are not uploading to a server, we use the blob URL for preview purposes.
-      // In a real app, you would upload the mediaFile and get back a URL.
+      // Pass the media URL to the parent component.
+      // After this point, the parent component "owns" the URL, and this component
+      // should no longer revoke it.
       onAddPost(postText, mediaFile && mediaPreview ? { url: mediaPreview, type: mediaType! } : undefined);
+      
+      // Reset component state for the next post.
+      // We are NOT revoking the URL here because it's now in use by the PostCard.
       setPostText('');
-      removeMedia();
+      setMediaFile(null);
+      setMediaPreview(null);
+      setMediaType(null);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 

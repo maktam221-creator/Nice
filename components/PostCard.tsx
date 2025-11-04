@@ -72,8 +72,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
       <p className="text-slate-700 whitespace-pre-wrap mb-4">{post.text}</p>
       
       {post.imageUrl && (
-        <div className="my-4 max-h-[600px] overflow-hidden rounded-lg">
-          <img src={post.imageUrl} alt="محتوى المنشور" className="w-full h-full object-cover" />
+        <div className="my-4 max-h-[600px] rounded-lg bg-black flex justify-center items-center">
+          <img src={post.imageUrl} alt="محتوى المنشور" className="max-w-full max-h-[600px] object-contain" />
         </div>
       )}
 
