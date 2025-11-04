@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
-import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages } from './data';
+import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages, currentUser } from './data';
 import { loadState, saveState } from './contexts/services/storageService';
-import { useAuth } from './contexts/AuthContext';
 
 // Statically import components that are part of the main, initial layout
 import Header from './components/Header';
@@ -14,7 +13,6 @@ import BottomNavBar from './components/BottomNavBar';
 import StoriesTray from './components/StoriesTray';
 
 // Lazy-load components that are not immediately visible (pages, modals)
-const AuthPage = lazy(() => import('./components/AuthPage'));
 const ProfilePage = lazy(() => import('./components/ProfilePage'));
 const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 const SettingsModal = lazy(() => import('./components/SettingsModal'));
@@ -41,9 +39,6 @@ const ContentLoader: React.FC = () => (
 
 
 export const App: React.FC = () => {
-    // --- AUTHENTICATION ---
-    const { currentUser: firebaseUser, loading, logout } = useAuth();
-
     // --- STATE MANAGEMENT ---
     const [users, setUsers] = useState<Record<string, User>>(() => loadState('maydan_users', initialUsers));
     const [posts, setPosts] = useState<Post[]>(() => loadState('maydan_posts', initialPosts));
@@ -52,26 +47,10 @@ export const App: React.FC = () => {
     const [stories, setStories] = useState<Record<string, Story[]>>(() => loadState('maydan_stories', initialStories));
     const [notifications, setNotifications] = useState<Notification[]>(() => loadState('maydan_notifications', initialNotifications));
     const [messages, setMessages] = useState<Message[]>(() => loadState('maydan_messages', initialMessages));
-    const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', ['user2', 'user4']));
-
-    // This effect creates a local user profile if one doesn't exist for the logged-in Firebase user
-    useEffect(() => {
-        if (firebaseUser && !users[firebaseUser.uid]) {
-            const newUser: User = {
-                uid: firebaseUser.uid,
-                name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'مستخدم جديد',
-                avatarUrl: firebaseUser.photoURL || `https://i.pravatar.cc/150?u=${firebaseUser.uid}`,
-                bio: 'مرحباً! أنا جديد هنا في ميدان.',
-            };
-            setUsers(prev => ({...prev, [firebaseUser.uid]: newUser}));
-        }
-    }, [firebaseUser, users]);
-
-    const currentUser = useMemo(() => {
-        if (!firebaseUser) return null;
-        return users[firebaseUser.uid];
-    }, [firebaseUser, users]);
     
+    // In the initial design, following list is static for demo purposes.
+    const following = useMemo(() => ['user2', 'user4'], []);
+
     // Page and navigation state
     type Page = 'home' | 'profile' | 'chat' | 'shorts';
     const [page, setPage] = useState<Page>('home');
@@ -91,12 +70,10 @@ export const App: React.FC = () => {
     const [viewingStoriesOfUser, setViewingStoriesOfUser] = useState<User | null>(null);
     const storyUsers = useMemo(() => Object.keys(stories).map(uid => users[uid]).filter(Boolean), [stories, users]);
 
-    // All hooks must be called at the top level, before any conditional returns.
     const filteredPosts = useMemo(() => posts.filter(p => p.text.toLowerCase().includes(searchQuery.toLowerCase()) || p.author.name.toLowerCase().includes(searchQuery.toLowerCase())), [posts, searchQuery]);
     const filteredUsers = useMemo(() => {
-        if (!currentUser) return [];
         return (Object.values(users) as User[]).filter(u => u.uid !== currentUser.uid && u.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [users, searchQuery, currentUser]);
+    }, [users, searchQuery]);
     const allUsersList = useMemo(() => (Object.values(users) as User[]), [users]);
     const followingUsers = useMemo(() => following.map(uid => users[uid]).filter(Boolean), [following, users]);
 
@@ -108,17 +85,8 @@ export const App: React.FC = () => {
     useEffect(() => { saveState('maydan_stories', stories); }, [stories]);
     useEffect(() => { saveState('maydan_notifications', notifications); }, [notifications]);
     useEffect(() => { saveState('maydan_messages', messages); }, [messages]);
-    useEffect(() => { saveState('maydan_following', following); }, [following]);
     
     // --- HANDLER FUNCTIONS ---
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } catch (error) {
-            console.error("Failed to log out", error);
-        }
-    };
-
     // Navigation
     const handleViewProfile = (user: User) => {
         setViewedProfileUser(user);
@@ -148,14 +116,12 @@ export const App: React.FC = () => {
 
     // Post Interactions
     const handleAddPost = (text: string, imageUrl?: string) => {
-        if (!currentUser) return;
         const newPost: Post = { id: Date.now(), author: currentUser, text, imageUrl, likes: 0, comments: 0, timestamp: 'الآن', isLiked: false, isSaved: false };
         setPosts([newPost, ...posts]);
     };
     const handleLikePost = (postId: number) => setPosts(posts.map(p => p.id === postId ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 } : p));
     const handleSavePost = (postId: number) => setPosts(posts.map(p => p.id === postId ? { ...p, isSaved: !p.isSaved } : p));
     const handleAddComment = (postId: number, text: string) => {
-        if (!currentUser) return;
         const newComment: Comment = { id: Date.now(), author: currentUser, text };
         setComments(prev => ({ ...prev, [postId]: [...(prev[postId] || []), newComment] }));
         setPosts(posts.map(p => p.id === postId ? { ...p, comments: (p.comments || 0) + 1 } : p));
@@ -163,7 +129,6 @@ export const App: React.FC = () => {
     const handleSharePost = async (postId: number) => {
         const post = posts.find(p => p.id === postId);
         if (post) {
-            // Using window.location.origin ensures a valid URL structure, fixing the "Invalid URL" error.
             const shareUrl = window.location.origin;
             if (navigator.share) {
                 try {
@@ -172,7 +137,6 @@ export const App: React.FC = () => {
                     console.log("Share failed or was cancelled", error);
                 }
             } else {
-                // Fallback to copying the link to clipboard for unsupported browsers.
                 try {
                     await navigator.clipboard.writeText(shareUrl);
                     alert('تم نسخ رابط المنشور.');
@@ -193,13 +157,9 @@ export const App: React.FC = () => {
 
     // User & Profile Interactions
     const handleUpdateUser = (updatedUser: User) => setUsers(prev => ({...prev, [updatedUser.uid]: updatedUser }));
-    const handleFollowToggle = (userUid: string) => {
-        setFollowing(prev => prev.includes(userUid) ? prev.filter(uid => uid !== userUid) : [...prev, userUid]);
-    };
-
+    
     // Story Interactions
     const handleAddStory = (storyData: { type: 'image' | 'text'; content: string; caption?: string; backgroundColor?: string; }) => {
-        if (!currentUser) return;
         const newStory: Story = { id: Date.now(), timestamp: new Date(), ...storyData };
         setStories(prev => ({ ...prev, [currentUser.uid]: [...(prev[currentUser.uid] || []), newStory] }));
     };
@@ -208,43 +168,32 @@ export const App: React.FC = () => {
     
     // Reel Interactions
     const handleAddReel = (videoUrl: string, caption: string) => {
-        if (!currentUser) return;
         const newReel: Reel = { id: Date.now(), author: currentUser, videoUrl, caption, likes: 0, shares: 0, isLiked: false, comments: [] };
         setReels([newReel, ...reels]);
     };
     const handleLikeReel = (reelId: number) => setReels(reels.map(r => r.id === reelId ? { ...r, isLiked: !r.isLiked, likes: r.isLiked ? r.likes - 1 : r.likes + 1 } : r));
     const handleShareReel = (reelId: number) => setReels(reels.map(r => r.id === reelId ? { ...r, shares: r.shares + 1 } : r));
     const handleAddReelComment = (reelId: number, text: string) => {
-        if (!currentUser) return;
         const newComment: Comment = { id: Date.now(), author: currentUser, text };
         setReels(reels.map(r => r.id === reelId ? { ...r, comments: [...r.comments, newComment] } : r));
     };
 
     // Chat Interactions
     const handleSendMessage = (recipient: User, text: string) => {
-        if (!currentUser) return;
         const newMessage: Message = { id: Date.now(), senderKey: currentUser.uid, receiverKey: recipient.uid, text, timestamp: new Date() };
         setMessages(prev => [...prev, newMessage]);
     };
 
     // --- RENDER LOGIC ---
-    if (loading) {
-        return <LoadingSpinner />;
-    }
-
-    if (!firebaseUser || !currentUser) {
-        return <Suspense fallback={<LoadingSpinner />}><AuthPage /></Suspense>;
-    }
-    
     const renderMainContent = () => {
         if (searchQuery) {
-            return <SearchResults users={filteredUsers} posts={filteredPosts} comments={comments} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} query={searchQuery} following={following} onFollowToggle={handleFollowToggle} />;
+            return <SearchResults users={filteredUsers} posts={filteredPosts} comments={comments} currentUser={currentUser} onViewProfile={handleViewProfile} onLike={handleLikePost} onAddComment={handleAddComment} onShare={handleSharePost} onSave={handleSavePost} onEdit={handleOpenEditPostModal} onDelete={handleDeletePost} query={searchQuery} following={following} onFollowToggle={() => {}} />;
         }
         if (page === 'profile' && viewedProfileUser) {
             const userPosts = posts.filter(p => p.author.uid === viewedProfileUser.uid);
             const userReels = reels.filter(r => r.author.uid === viewedProfileUser.uid);
             const savedPosts = posts.filter(p => p.isSaved);
-            return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} comments={comments} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} handleViewProfile={handleViewProfile} onEditProfile={() => setIsEditProfileModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={(user) => { setPage('chat'); setChatTargetUser(user); }} following={following} onFollowToggle={handleFollowToggle} viewers={[{viewer: users['user1'], timestamp: 'منذ 5 دقائق'}]} onUpdateAvatar={(url) => handleUpdateUser({...currentUser, avatarUrl: url})} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />;
+            return <ProfilePage user={viewedProfileUser} posts={userPosts} reels={userReels} savedPosts={savedPosts} comments={comments} onLike={handleLikePost} onSave={handleSavePost} onAddComment={handleAddComment} onShare={handleSharePost} onAddPost={handleAddPost} currentUser={currentUser} handleViewProfile={handleViewProfile} onEditProfile={() => setIsEditProfileModalOpen(true)} onOpenSettings={() => setIsSettingsModalOpen(true)} onGoToChat={(user) => { setPage('chat'); setChatTargetUser(user); }} following={following} onFollowToggle={() => {}} viewers={[{viewer: users['user2'], timestamp: 'منذ 5 دقائق'}]} onEditPost={handleOpenEditPostModal} onDeletePost={handleDeletePost} />;
         }
         if (page === 'shorts') {
             return <ShortsPage reels={reels} currentUser={currentUser} onLike={handleLikeReel} onAddComment={handleAddReelComment} onShare={handleShareReel} onAddReel={() => setIsCreateReelModalOpen(true)} onViewProfile={handleViewProfile} />;
@@ -268,17 +217,15 @@ export const App: React.FC = () => {
 
     return (
         <div className="bg-slate-100 min-h-screen font-[sans-serif] text-slate-800 pb-20 lg:pb-0">
-            {/* Suspense boundary for all modals. Fallback is null to avoid showing a loader for a quick modal flash. */}
             <Suspense fallback={null}>
                 {viewingStoriesOfUser && <StoryViewer user={viewingStoriesOfUser} stories={stories[viewingStoriesOfUser.uid]} onClose={() => setViewingStoriesOfUser(null)} onNextUser={() => {}} onPrevUser={() => {}} onMarkAsViewed={handleMarkStoryAsViewed} />}
                 <EditProfileModal isOpen={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} user={currentUser} onSave={handleUpdateUser} />
-                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={handleLogout} />
+                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={async () => alert('تم تسجيل الخروج (محاكاة)')} />
                 <EditPostModal isOpen={isEditPostModalOpen} onClose={() => setIsEditPostModalOpen(false)} post={editingPost} onSave={handleEditPost} />
                 <StoryCreatorModal isOpen={isCreateStoryModalOpen} onClose={() => setIsCreateStoryModalOpen(false)} onAddStory={handleAddStory} />
                 <CreateReelModal isOpen={isCreateReelModalOpen} onClose={() => setIsCreateReelModalOpen(false)} onAddReel={handleAddReel} />
             </Suspense>
 
-            {/* --- Main Layout --- */}
             <Header
                 currentUser={currentUser}
                 searchQuery={searchQuery}
@@ -292,7 +239,7 @@ export const App: React.FC = () => {
             <main className="max-w-6xl mx-auto pt-20 px-2 sm:px-4">
                 <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[280px_1fr_320px] gap-6">
                     <aside className="hidden lg:block sticky top-20 self-start">
-                        <Sidebar currentUser={currentUser} allUsers={allUsersList} following={following} onViewProfile={handleViewProfile} onFollowToggle={handleFollowToggle} />
+                        <Sidebar currentUser={currentUser} allUsers={allUsersList} following={following} onViewProfile={handleViewProfile} onFollowToggle={() => {}} />
                     </aside>
                     <div className="min-w-0">
                         <Suspense fallback={<ContentLoader />}>

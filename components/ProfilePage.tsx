@@ -1,12 +1,11 @@
 
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { User, Post, Reel, Comment } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
-import { uploadMedia } from '../contexts/services/cloudinaryService';
 
 interface ProfilePageProps {
   user: User;
@@ -27,36 +26,15 @@ interface ProfilePageProps {
   following: string[];
   onFollowToggle: (userUid: string) => void;
   viewers?: { viewer: User; timestamp: string }[];
-  onUpdateAvatar: (newAvatarUrl: string) => void;
   onEditPost: (post: Post) => void;
   onDeletePost: (postId: number) => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, comments, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onUpdateAvatar, onEditPost, onDeletePost }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, comments, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onEditPost, onDeletePost }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
   const isCurrentUserProfile = user.uid === currentUser.uid;
   const isFollowing = following.includes(user.uid);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setIsUploadingAvatar(true);
-      try {
-        const newAvatarUrl = await uploadMedia(file, 'image');
-        onUpdateAvatar(newAvatarUrl);
-      } catch (error) {
-        console.error("Failed to upload avatar:", error);
-        alert('حدث خطأ أثناء تحميل الصورة الرمزية. يرجى المحاولة مرة أخرى.');
-      } finally {
-        setIsUploadingAvatar(false);
-      }
-    }
-  };
-
-  const triggerFileSelect = () => fileInputRef.current?.click();
 
   return (
     <div className="space-y-6">
@@ -64,32 +42,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex items-center space-x-6 rtl:space-x-reverse">
                 <div className="relative flex-shrink-0">
-                    <img src={user.avatarUrl} alt={user.name} className={`w-24 h-24 rounded-full border-4 border-slate-200 transition-opacity ${isUploadingAvatar ? 'opacity-50' : ''}`} />
-                    {isUploadingAvatar && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 rounded-full">
-                            <div className="w-8 h-8 border-4 border-t-transparent border-white rounded-full animate-spin"></div>
-                        </div>
-                    )}
-                    {isCurrentUserProfile && (
-                        <>
-                            <button
-                                onClick={triggerFileSelect}
-                                disabled={isUploadingAvatar}
-                                className="absolute bottom-0 right-0 bg-slate-700 text-white rounded-full p-2 hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="تغيير صورة الملف الشخصي"
-                            >
-                                <CameraIcon className="w-5 h-5" />
-                            </button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleAvatarChange}
-                                className="hidden"
-                                accept="image/*"
-                                disabled={isUploadingAvatar}
-                            />
-                        </>
-                    )}
+                    <img src={user.avatarUrl} alt={user.name} className="w-24 h-24 rounded-full border-4 border-slate-200" />
                 </div>
                 <div className="flex-1">
                     <h2 className="text-3xl font-bold text-slate-800">{user.name}</h2>

@@ -9,6 +9,8 @@ export const initialUsers: Record<string, User> = {
   'user5': { uid: 'user5', name: 'خالد عبد الله', avatarUrl: 'https://i.pravatar.cc/150?u=user5', isOnline: false, bio: 'مصور فوتوغرافي محترف.' },
 };
 
+export const currentUser: User = initialUsers['user1'];
+
 export const initialPosts: Post[] = [
   {
     id: 1,

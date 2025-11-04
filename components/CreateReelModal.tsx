@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { uploadMedia } from '../contexts/services/cloudinaryService';
 import { XIcon } from './Icons';
 
 interface CreateReelModalProps {
@@ -44,15 +43,13 @@ const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAd
     if (!videoFile) return;
 
     setIsUploading(true);
-    try {
-      const videoUrl = await uploadMedia(videoFile, 'video');
-      onAddReel(videoUrl, caption);
-      handleClose();
-    } catch (error) {
-      console.error("Failed to upload video:", error);
-      alert("حدث خطأ أثناء رفع الفيديو. يرجى المحاولة مرة أخرى.");
-      setIsUploading(false);
-    }
+    // Simulate upload delay
+    setTimeout(() => {
+        // For this demo, we'll use a placeholder URL instead of a real upload.
+        const placeholderVideoUrl = 'https://storage.googleapis.com/web-dev-assets/video-and-source-tags/chrome.mp4';
+        onAddReel(placeholderVideoUrl, caption);
+        handleClose();
+    }, 1500);
   };
 
   return (
