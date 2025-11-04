@@ -1,9 +1,9 @@
 
 
 import React, { useState, useRef } from 'react';
-import { enhancePost } from '../services/geminiService';
+import { enhancePost } from '../contexts/services/geminiService';
 import { PhotoIcon, SparklesIcon, XIcon } from './Icons';
-import { uploadMedia } from '../services/cloudinaryService';
+import { uploadMedia } from '../contexts/services/cloudinaryService';
 
 interface StoryCreatorModalProps {
   isOpen: boolean;

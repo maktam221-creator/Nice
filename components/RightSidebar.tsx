@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Message } from '../types';
 import { PaperAirplaneIcon, ChevronRightIcon } from './Icons';
 
@@ -46,17 +46,16 @@ const RightSidebar: React.FC<RightSidebarProps> = ({
         }
     };
 
-    const getConversation = () => {
+    const conversation = useMemo(() => {
         if (!selectedUser || !currentUser) return [];
         return messages.filter(
           (msg) =>
             (msg.senderKey === currentUser.uid && msg.receiverKey === selectedUser.uid) ||
             (msg.senderKey === selectedUser.uid && msg.receiverKey === currentUser.uid)
         );
-    };
+    }, [messages, selectedUser, currentUser]);
 
     if (selectedUser) {
-        const conversation = getConversation();
         return (
             <div className="bg-white rounded-lg shadow-md flex flex-col h-[calc(100vh-140px)]">
                 <div className="p-3 border-b flex items-center space-x-3 rtl:space-x-reverse shadow-sm">

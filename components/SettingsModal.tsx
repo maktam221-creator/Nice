@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { XIcon, CogIcon, ShieldCheckIcon, KeyIcon, UserCircleIcon, ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogout: () => void;
 }
 
 type SettingsView = 'main' | 'privacy' | 'password' | 'account';
@@ -26,7 +24,7 @@ const ToggleSwitch: React.FC<{ label: string }> = ({ label }) => {
 };
 
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onLogout }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [activeView, setActiveView] = useState<SettingsView>('main');
 
   // Reset view when modal is closed
@@ -173,14 +171,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onLogout
             <div className="flex-grow">
                 {renderContent()}
             </div>
-        </div>
-         <div className="bg-slate-50 p-4 border-t rounded-b-lg">
-              <button 
-                  onClick={onLogout} 
-                  className="w-full text-center text-slate-600 font-semibold p-2 rounded-md hover:bg-slate-200 transition-colors"
-              >
-                تسجيل الخروج
-              </button>
         </div>
       </div>
     </div>

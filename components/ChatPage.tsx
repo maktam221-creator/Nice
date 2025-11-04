@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Message } from '../types';
 import { PaperAirplaneIcon, LockClosedIcon, LockOpenIcon, XIcon } from './Icons';
 
@@ -58,17 +58,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
   
-  const getConversation = () => {
+  const conversation = useMemo(() => {
     if (!selectedUser || !currentUser) return [];
-
     return messages.filter(
       (msg) =>
         (msg.senderKey === currentUser.uid && msg.receiverKey === selectedUser.uid) ||
         (msg.senderKey === selectedUser.uid && msg.receiverKey === currentUser.uid)
     );
-  };
-
-  const conversation = getConversation();
+  }, [messages, selectedUser, currentUser]);
   
   const isSelectedChatLocked = selectedUser ? lockedChats.includes(selectedUser.uid) : false;
 
@@ -172,7 +169,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                              <div className={`w-fit max-w-xs lg:max-w-md p-3 rounded-2xl ${isSentByCurrentUser ? 'bg-indigo-600 text-white rounded-br-lg' : 'bg-slate-200 text-slate-800 rounded-bl-lg'}`}>
                                <p className="text-sm">{msg.text}</p>
                              </div>
-                             <p className={`text-xs text-slate-400 mt-1 px-1 ${isSentByCurrentUser ? 'text-left' : 'text-right'}`}>{msg.timestamp}</p>
+                             <p className={`text-xs text-slate-400 mt-1 px-1 ${isSentByCurrentUser ? 'text-left' : 'text-right'}`}>{msg.timestamp.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
                            </div>
                         </div>
                      );

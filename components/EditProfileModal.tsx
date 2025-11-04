@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { XIcon } from './Icons';
 
@@ -17,7 +16,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
   const [isGenderPublic, setIsGenderPublic] = useState(user.gender?.isPublic ?? true);
   const [country, setCountry] = useState(user.country?.value || '');
   const [isCountryPublic, setIsCountryPublic] = useState(user.country?.isPublic ?? true);
-  const isInitialMount = useRef(true);
 
   // This effect populates the form when the modal is opened or the user prop changes.
   useEffect(() => {
@@ -28,39 +26,24 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
       setIsGenderPublic(user.gender?.isPublic ?? true);
       setCountry(user.country?.value || '');
       setIsCountryPublic(user.country?.isPublic ?? true);
-      // Reset the initial mount flag when the user prop changes, so it doesn't auto-save
-      isInitialMount.current = true;
     }
   }, [user]);
-
-  // This effect handles autosaving with a debounce
-  useEffect(() => {
-    // Skip the initial render to prevent saving when the modal just opened.
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    
-    const handler = setTimeout(() => {
-      const updatedUser: User = {
-        ...user,
-        name,
-        bio,
-        gender: { value: gender, isPublic: isGenderPublic },
-        country: { value: country, isPublic: isCountryPublic },
-      };
-      onSave(updatedUser);
-    }, 500); // 500ms debounce
-
-    // Clear the timeout if the component unmounts or dependencies change
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [name, bio, gender, isGenderPublic, country, isCountryPublic, user, onSave]);
 
   if (!isOpen) {
     return null;
   }
+
+  const handleSave = () => {
+    const updatedUser: User = {
+      ...user,
+      name,
+      bio,
+      gender: { value: gender, isPublic: isGenderPublic },
+      country: { value: country, isPublic: isCountryPublic },
+    };
+    onSave(updatedUser);
+    onClose();
+  };
   
   const countries = ["السعودية", "مصر", "الإمارات", "الكويت", "قطر", "البحرين", "عمان", "الأردن", "لبنان", "المغرب", "تونس", "الجزائر"];
 
@@ -139,8 +122,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
           </div>
           
           <div className="flex justify-end items-center border-t pt-4 space-x-2 rtl:space-x-reverse">
-             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-md hover:bg-slate-200 transition-colors">
-              إغلاق
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-md hover:bg-slate-200 transition-colors">
+              إلغاء
+            </button>
+            <button type="button" onClick={handleSave} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">
+              حفظ
             </button>
           </div>
         </div>

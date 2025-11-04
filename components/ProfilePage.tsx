@@ -6,7 +6,7 @@ import PostCard from './PostCard';
 import CreatePost from './CreatePost';
 import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, CameraIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
-import { uploadMedia } from '../services/cloudinaryService';
+import { uploadMedia } from '../contexts/services/cloudinaryService';
 
 interface ProfilePageProps {
   user: User;

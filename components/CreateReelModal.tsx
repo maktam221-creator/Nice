@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { uploadMedia } from '../services/cloudinaryService';
+import { uploadMedia } from '../contexts/services/cloudinaryService';
 import { XIcon } from './Icons';
 
 interface CreateReelModalProps {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { FirebaseError } from 'firebase/app';
@@ -17,6 +16,8 @@ const AuthPage: React.FC = () => {
   const handleFirebaseError = (err: any) => {
     if (err instanceof FirebaseError) {
         switch (err.code) {
+            case 'auth/invalid-api-key':
+                return 'إعدادات Firebase غير صحيحة. يرجى التأكد من أن متغيرات البيئة الخاصة بـ Firebase تم إعدادها بشكل صحيح.';
             case 'auth/invalid-email':
                 return 'البريد الإلكتروني غير صالح.';
             case 'auth/user-not-found':

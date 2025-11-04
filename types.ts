@@ -1,17 +1,19 @@
+
+// Fix: Added optional fields to User type to support profile information.
 export interface User {
   uid: string;
   name: string;
   avatarUrl: string;
-  gender?: { value: string; isPublic: boolean };
   bio?: string;
-  country?: { value:string; isPublic: boolean };
   isOnline?: boolean;
-}
-
-export interface Comment {
-  id: number;
-  author: User;
-  text: string;
+  gender?: {
+      value: string;
+      isPublic: boolean;
+  };
+  country?: {
+      value: string;
+      isPublic: boolean;
+  };
 }
 
 export interface Post {
@@ -20,54 +22,58 @@ export interface Post {
   text: string;
   imageUrl?: string;
   likes: number;
-  shares: number;
-  isLiked: boolean;
-  isSaved: boolean;
-  comments: Comment[];
+  comments: number;
   timestamp: string;
 }
 
+// Fix: Added missing Comment type definition.
+export interface Comment {
+  id: number;
+  author: User;
+  text: string;
+}
+
+// Fix: Added missing Reel type definition.
 export interface Reel {
   id: number;
   author: User;
   videoUrl: string;
   caption: string;
-  likes: number;
-  shares: number;
-  isLiked: boolean;
-  comments: Comment[];
-  timestamp: string;
   music?: string;
+  likes: number;
+  isLiked: boolean;
+  shares: number;
+  comments: Comment[];
 }
 
-// Notification and NotificationType types.
+// Fix: Added missing NotificationType type definition.
 export type NotificationType = 'like' | 'comment' | 'follow' | 'message';
 
+// Fix: Added missing Notification type definition.
 export interface Notification {
-  id: string | number;
-  type: NotificationType;
+  id: number;
   actor: User;
-  read: boolean;
+  type: NotificationType;
   timestamp: string;
-  postId?: number;
+  read: boolean;
 }
 
+// Fix: Added missing Message type definition.
 export interface Message {
-  id: string | number;
+  id: number;
   senderKey: string;
   receiverKey: string;
   text: string;
-  timestamp: string;
-  participants?: string[];
+  timestamp: Date;
 }
 
+// Fix: Added missing Story type definition.
 export interface Story {
   id: number;
-  authorKey: string;
   type: 'image' | 'text';
-  content: string; // URL for image, text for text story
-  caption?: string; // For image stories
-  backgroundColor?: string; // For text stories
+  content: string;
+  caption?: string;
+  backgroundColor?: string;
   timestamp: Date;
-  viewedBy: string[]; // array of user keys who viewed it
+  viewed?: boolean;
 }
