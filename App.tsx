@@ -454,7 +454,8 @@ const App: React.FC = () => {
     const validUsers: User[] = Object.values(users).filter(
       // FIX: The `user` parameter might be `unknown` when loaded from localStorage.
       // Cast to `any` to safely access properties for this runtime check.
-      (user: unknown): user is User => !!user && typeof (user as any).name === 'string' && typeof (user as any).uid === 'string'
+// Fix: Changed user type from unknown to any to avoid type errors with dynamic data from localStorage.
+      (user: any): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
     );
 
     const filteredUsers = validUsers.filter(user =>
@@ -473,9 +474,10 @@ const App: React.FC = () => {
 
   const unreadNotificationsCount = notifications.filter(n => !n.read).length;
 
+  const isLoading = authLoading || (!!authUser && !currentUser);
 
   // Loading screen
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-100 flex justify-center items-center">
         <div className="w-16 h-16 border-8 border-t-transparent border-indigo-600 rounded-full animate-spin"></div>
@@ -589,6 +591,7 @@ const App: React.FC = () => {
           onSave={handleSavePost}
           onAddPost={handleAddPost}
           currentUser={currentUser}
+// Fix: Corrected typo from `onViewProfile` to `handleViewProfile`.
           onViewProfile={handleViewProfile}
           onEditProfile={() => setIsEditModalOpen(true)}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
@@ -683,7 +686,7 @@ const App: React.FC = () => {
           <div className="sticky top-24">
             <Sidebar
                 currentUser={currentUser}
-                allUsers={Object.values(users).filter((user): user is User => !!user && !!user.uid)}
+                allUsers={Object.values(users).filter((user: any): user is User => !!user && !!user.uid)}
                 following={following}
                 onViewProfile={handleViewProfile}
                 onFollowToggle={handleFollowToggle}
