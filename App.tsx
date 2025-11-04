@@ -1,28 +1,43 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Post, User, Comment, Reel, Story, Notification, Message } from './types';
 import { initialUsers, initialPosts, initialComments, initialReels, initialStories, initialNotifications, initialMessages } from './data';
 import { loadState, saveState } from './contexts/services/storageService';
 import { useAuth } from './contexts/AuthContext';
-import AuthPage from './components/AuthPage';
 
-// Import all components
+// Statically import components that are part of the main, initial layout
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import PostCard from './components/PostCard';
 import CreatePost from './components/CreatePost';
-import ProfilePage from './components/ProfilePage';
-import EditProfileModal from './components/EditProfileModal';
-import SettingsModal from './components/SettingsModal';
-import EditPostModal from './components/EditPostModal';
 import BottomNavBar from './components/BottomNavBar';
-import SearchResults from './components/SearchResults';
 import StoriesTray from './components/StoriesTray';
-import StoryViewer from './components/StoryViewer';
-import StoryCreatorModal from './components/StoryCreatorModal';
-import ShortsPage from './components/ShortsPage';
-import CreateReelModal from './components/CreateReelModal';
-import ChatPage from './components/ChatPage';
+
+// Lazy-load components that are not immediately visible (pages, modals)
+const AuthPage = lazy(() => import('./components/AuthPage'));
+const ProfilePage = lazy(() => import('./components/ProfilePage'));
+const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
+const SettingsModal = lazy(() => import('./components/SettingsModal'));
+const EditPostModal = lazy(() => import('./components/EditPostModal'));
+const SearchResults = lazy(() => import('./components/SearchResults'));
+const StoryViewer = lazy(() => import('./components/StoryViewer'));
+const StoryCreatorModal = lazy(() => import('./components/StoryCreatorModal'));
+const ShortsPage = lazy(() => import('./components/ShortsPage'));
+const CreateReelModal = lazy(() => import('./components/CreateReelModal'));
+const ChatPage = lazy(() => import('./components/ChatPage'));
+
+
+const LoadingSpinner: React.FC = () => (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
+    </div>
+);
+
+const ContentLoader: React.FC = () => (
+    <div className="flex items-center justify-center p-8 min-h-[300px]">
+        <div className="w-12 h-12 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
+    </div>
+);
 
 
 export const App: React.FC = () => {
@@ -214,11 +229,11 @@ export const App: React.FC = () => {
 
     // --- RENDER LOGIC ---
     if (loading) {
-        return <div className="min-h-screen bg-slate-100 flex items-center justify-center"><div className="w-16 h-16 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div></div>;
+        return <LoadingSpinner />;
     }
 
     if (!firebaseUser || !currentUser) {
-        return <AuthPage />;
+        return <Suspense fallback={<LoadingSpinner />}><AuthPage /></Suspense>;
     }
     
     const renderMainContent = () => {
@@ -253,13 +268,15 @@ export const App: React.FC = () => {
 
     return (
         <div className="bg-slate-100 min-h-screen font-[sans-serif] text-slate-800 pb-20 lg:pb-0">
-            {/* --- Modals --- */}
-            {viewingStoriesOfUser && <StoryViewer user={viewingStoriesOfUser} stories={stories[viewingStoriesOfUser.uid]} onClose={() => setViewingStoriesOfUser(null)} onNextUser={() => {}} onPrevUser={() => {}} onMarkAsViewed={handleMarkStoryAsViewed} />}
-            <EditProfileModal isOpen={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} user={currentUser} onSave={handleUpdateUser} />
-            <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={handleLogout} />
-            <EditPostModal isOpen={isEditPostModalOpen} onClose={() => setIsEditPostModalOpen(false)} post={editingPost} onSave={handleEditPost} />
-            <StoryCreatorModal isOpen={isCreateStoryModalOpen} onClose={() => setIsCreateStoryModalOpen(false)} onAddStory={handleAddStory} />
-            <CreateReelModal isOpen={isCreateReelModalOpen} onClose={() => setIsCreateReelModalOpen(false)} onAddReel={handleAddReel} />
+            {/* Suspense boundary for all modals. Fallback is null to avoid showing a loader for a quick modal flash. */}
+            <Suspense fallback={null}>
+                {viewingStoriesOfUser && <StoryViewer user={viewingStoriesOfUser} stories={stories[viewingStoriesOfUser.uid]} onClose={() => setViewingStoriesOfUser(null)} onNextUser={() => {}} onPrevUser={() => {}} onMarkAsViewed={handleMarkStoryAsViewed} />}
+                <EditProfileModal isOpen={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} user={currentUser} onSave={handleUpdateUser} />
+                <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} onLogout={handleLogout} />
+                <EditPostModal isOpen={isEditPostModalOpen} onClose={() => setIsEditPostModalOpen(false)} post={editingPost} onSave={handleEditPost} />
+                <StoryCreatorModal isOpen={isCreateStoryModalOpen} onClose={() => setIsCreateStoryModalOpen(false)} onAddStory={handleAddStory} />
+                <CreateReelModal isOpen={isCreateReelModalOpen} onClose={() => setIsCreateReelModalOpen(false)} onAddReel={handleAddReel} />
+            </Suspense>
 
             {/* --- Main Layout --- */}
             <Header
@@ -278,7 +295,9 @@ export const App: React.FC = () => {
                         <Sidebar currentUser={currentUser} allUsers={allUsersList} following={following} onViewProfile={handleViewProfile} onFollowToggle={handleFollowToggle} />
                     </aside>
                     <div className="min-w-0">
-                        {renderMainContent()}
+                        <Suspense fallback={<ContentLoader />}>
+                            {renderMainContent()}
+                        </Suspense>
                     </div>
                     <aside className="hidden xl:block sticky top-20 self-start">
                         <RightSidebar currentUser={currentUser} allUsers={users} messages={messages} onSendMessage={handleSendMessage} followingUsers={followingUsers} onViewProfile={handleViewProfile} initialTargetUser={chatTargetUser} onClearTargetUser={() => setChatTargetUser(null)} />
