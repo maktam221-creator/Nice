@@ -21,9 +21,12 @@ import CreateReelModal from './components/CreateReelModal';
 import AuthPage from './components/AuthPage';
 import { useAuth } from './contexts/AuthContext';
 import { Post, User, Notification, Message, Story, Reel } from './types';
-import { initialUsers, initialPosts, initialProfileViews, initialNotifications, initialMessages, initialStories, initialReels } from './data';
+import { initialUsers, initialPosts, initialProfileViews, initialStories, initialReels } from './data';
 import { HomeIcon, UserIcon, SearchIcon, XCircleIcon, BellIcon, ChatBubbleLeftRightIcon, VideoCameraIcon, XIcon, TrashIcon } from './components/Icons';
 import { loadState, saveState } from './services/storageService';
+import { db } from './services/firebaseConfig';
+import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, Timestamp } from 'firebase/firestore';
+
 
 type ProfileView = { viewer: User; timestamp: string };
 type Page = 'home' | 'profile' | 'chat' | 'shorts';
@@ -91,8 +94,8 @@ const App: React.FC = () => {
   const [reels, setReels] = useState<Reel[]>(() => loadState('maydan_reels', initialReels));
   const [stories, setStories] = useState<Story[]>(() => loadState('maydan_stories', initialStories));
   const [profileViews, setProfileViews] = useState<Record<string, ProfileView[]>>(() => loadState('maydan_profileViews', initialProfileViews));
-  const [notifications, setNotifications] = useState<Notification[]>(() => loadState('maydan_notifications', initialNotifications));
-  const [messages, setMessages] = useState<Message[]>(() => loadState('maydan_messages', initialMessages));
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [following, setFollowing] = useState<string[]>(() => loadState('maydan_following', ['user1', 'user2', 'user3', 'user4', 'user5']));
   
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -120,8 +123,6 @@ const App: React.FC = () => {
   useEffect(() => { saveState('maydan_reels', reels); }, [reels]);
   useEffect(() => { saveState('maydan_stories', stories); }, [stories]);
   useEffect(() => { saveState('maydan_profileViews', profileViews); }, [profileViews]);
-  useEffect(() => { saveState('maydan_notifications', notifications); }, [notifications]);
-  useEffect(() => { saveState('maydan_messages', messages); }, [messages]);
   useEffect(() => { saveState('maydan_following', following); }, [following]);
 
   useEffect(() => {
@@ -149,6 +150,70 @@ const App: React.FC = () => {
   }, [authUser, users, authLoading]);
   
   useEffect(() => {
+    if (!currentUser) {
+      setMessages([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'messages'),
+      where('participants', 'array-contains', currentUser.uid),
+      orderBy('timestamp', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const msgs: Message[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const ts = data.timestamp as Timestamp;
+        msgs.push({
+          id: doc.id,
+          senderKey: data.senderKey,
+          receiverKey: data.receiverKey,
+          text: data.text,
+          timestamp: ts ? new Date(ts.seconds * 1000).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : "الآن",
+          participants: data.participants,
+        });
+      });
+      setMessages(msgs);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setNotifications([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'notifications'),
+      where('recipientUid', '==', currentUser.uid),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const notifs: Notification[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const ts = data.timestamp as Timestamp;
+        notifs.push({
+          id: doc.id,
+          type: data.type,
+          actor: data.actor,
+          read: data.read,
+          timestamp: ts ? new Date(ts.seconds * 1000).toLocaleString('ar-EG') : "الآن",
+          postId: data.postId,
+        });
+      });
+      setNotifications(notifs);
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
         if (
             isNotificationsOpen &&
@@ -174,7 +239,26 @@ const App: React.FC = () => {
   };
 
   const handleLikePost = (postId: number) => {
-    setPosts( posts.map((post) => { if (post.id === postId) { const isLiked = !post.isLiked; return { ...post, isLiked: isLiked, likes: isLiked ? post.likes + 1 : post.likes - 1, }; } return post; }) );
+    const post = posts.find(p => p.id === postId);
+    if (!post || !currentUser) return;
+    
+    setPosts(posts.map((p) => {
+        if (p.id === postId) {
+            const isLiked = !p.isLiked;
+            if (isLiked && p.author.uid !== currentUser.uid) {
+                addDoc(collection(db, 'notifications'), {
+                    recipientUid: p.author.uid,
+                    type: 'like',
+                    actor: { uid: currentUser.uid, name: currentUser.name, avatarUrl: currentUser.avatarUrl },
+                    read: false,
+                    timestamp: serverTimestamp(),
+                    postId: p.id
+                }).catch(e => console.error("Error adding notification:", e));
+            }
+            return { ...p, isLiked: isLiked, likes: isLiked ? p.likes + 1 : p.likes - 1 };
+        }
+        return p;
+    }));
   };
 
   const handleSavePost = (postId: number) => {
@@ -194,7 +278,20 @@ const App: React.FC = () => {
 
   const handleAddComment = (postId: number, text: string) => {
     if (!currentUser) return;
-    setPosts( posts.map((post) => { if (post.id === postId) { const newComment = { id: Date.now(), author: currentUser, text, }; return { ...post, comments: [...post.comments, newComment] }; } return post; }) );
+
+    const post = posts.find(p => p.id === postId);
+    if (post && post.author.uid !== currentUser.uid) {
+        addDoc(collection(db, 'notifications'), {
+            recipientUid: post.author.uid,
+            type: 'comment',
+            actor: { uid: currentUser.uid, name: currentUser.name, avatarUrl: currentUser.avatarUrl },
+            read: false,
+            timestamp: serverTimestamp(),
+            postId: post.id
+        }).catch(e => console.error("Error adding notification:", e));
+    }
+
+    setPosts( posts.map((p) => { if (p.id === postId) { const newComment = { id: Date.now(), author: currentUser, text, }; return { ...p, comments: [...p.comments, newComment] }; } return p; }) );
   };
   
   const handleOpenEditPostModal = (post: Post) => {
@@ -328,45 +425,63 @@ const App: React.FC = () => {
     setSearchQuery('');
   };
 
-  const handleSendMessage = (recipient: User, text: string) => {
+  const handleSendMessage = async (recipient: User, text: string) => {
     if (!currentUser) return;
-    
-    const newMessage: Message = {
-      id: Date.now(),
-      senderKey: currentUser.uid,
-      receiverKey: recipient.uid,
-      text,
-      timestamp: "الآن",
-    };
-    setMessages(prev => [...prev, newMessage]);
 
-    setTimeout(() => {
-        const replyMessage: Message = {
-            id: Date.now() + 1,
-            senderKey: recipient.uid,
-            receiverKey: currentUser.uid,
-            text: 'شكراً لك! سألقي نظرة على ذلك.',
-            timestamp: "الآن",
-        };
-        setMessages(prev => [...prev, replyMessage]);
+    const participants = [currentUser.uid, recipient.uid].sort();
 
-        const newNotification: Notification = {
-            id: Date.now() + 2,
-            type: 'message',
-            actor: recipient,
-            read: false,
-            timestamp: "الآن",
-        };
-        setNotifications(prev => [newNotification, ...prev]);
-    }, 1500);
+    try {
+      await addDoc(collection(db, 'messages'), {
+        senderKey: currentUser.uid,
+        receiverKey: recipient.uid,
+        text,
+        participants,
+        timestamp: serverTimestamp(),
+      });
+
+      if (recipient.uid !== currentUser.uid) {
+        await addDoc(collection(db, 'notifications'), {
+          recipientUid: recipient.uid,
+          type: 'message',
+          actor: {
+            uid: currentUser.uid,
+            name: currentUser.name,
+            avatarUrl: currentUser.avatarUrl,
+          },
+          read: false,
+          timestamp: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   const handleFollowToggle = (userUid: string) => {
+    if (!currentUser) return;
+
+    const isCurrentlyFollowing = following.includes(userUid);
+    if (!isCurrentlyFollowing) {
+        addDoc(collection(db, 'notifications'), {
+            recipientUid: userUid,
+            type: 'follow',
+            actor: { uid: currentUser.uid, name: currentUser.name, avatarUrl: currentUser.avatarUrl },
+            read: false,
+            timestamp: serverTimestamp(),
+        }).catch(e => console.error("Error adding notification:", e));
+    }
+    
     setFollowing(prev => { const isFollowing = prev.includes(userUid); if (isFollowing) { return prev.filter(uid => uid !== userUid); } else { return [...prev, userUid]; } });
   };
   
-  const handleNotificationNavigate = (notification: Notification) => {
-    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+  const handleNotificationNavigate = async (notification: Notification) => {
+    const notifRef = doc(db, 'notifications', String(notification.id));
+    try {
+        await updateDoc(notifRef, { read: true });
+    } catch (error) {
+        console.error("Error marking notification as read:", error);
+    }
+
     setIsNotificationsOpen(false);
 
     switch(notification.type) {
@@ -379,6 +494,7 @@ const App: React.FC = () => {
         case 'like':
         case 'comment':
             handleGoHome();
+            // TODO: Ideally, navigate to the specific post.
             break;
     }
   };

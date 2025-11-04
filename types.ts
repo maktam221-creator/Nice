@@ -44,19 +44,21 @@ export interface Reel {
 export type NotificationType = 'like' | 'comment' | 'follow' | 'message';
 
 export interface Notification {
-  id: number;
+  id: string | number;
   type: NotificationType;
   actor: User;
   read: boolean;
   timestamp: string;
+  postId?: number;
 }
 
 export interface Message {
-  id: number;
+  id: string | number;
   senderKey: string;
   receiverKey: string;
   text: string;
   timestamp: string;
+  participants?: string[];
 }
 
 export interface Story {

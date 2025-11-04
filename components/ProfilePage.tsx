@@ -96,10 +96,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
                         <span><strong className="text-slate-700">{posts.length}</strong> منشورات</span>
                         <span><strong className="text-slate-700">{reels.length}</strong> فيديوهات</span>
                     </div>
-                    {(user.bio || user.country) && (
-                        <div className="mt-3 text-sm text-slate-600 border-t pt-3 space-y-1">
+                     {(user.bio || (user.country && user.country.value) || (user.gender && user.gender.value && user.gender.value !== 'أفضل عدم القول')) && (
+                        <div className="mt-3 text-sm text-slate-600 border-t pt-3 space-y-2">
                             {user.bio && <p>{user.bio}</p>}
-                            {(user.country?.isPublic || isCurrentUserProfile) && user.country?.value && <p className="font-medium">📍 من {user.country.value}</p>}
+                            <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                {(user.country?.isPublic || isCurrentUserProfile) && user.country?.value && (
+                                    <p className="font-medium flex items-center gap-2">
+                                        <span role="img" aria-label="location">📍</span>
+                                        <span>من {user.country.value}</span>
+                                    </p>
+                                )}
+                                {(user.gender?.isPublic || isCurrentUserProfile) && user.gender?.value && user.gender.value !== 'أفضل عدم القول' && (
+                                    <p className="font-medium flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                        </svg>
+                                        <span>{user.gender.value}</span>
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
