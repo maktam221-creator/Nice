@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, allUsers, following, onV
     .slice(0, 3); // Show up to 3 suggestions
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sticky top-24">
       {/* Current User Profile Card */}
       <div className="bg-white p-4 rounded-lg shadow-md">
          <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">ملفك الشخصي</h3>

@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import CreatePost from './components/CreatePost';
 import PostCard from './components/PostCard';
@@ -10,6 +8,7 @@ import EditPostModal from './components/EditPostModal';
 import SettingsModal from './components/SettingsModal';
 import SearchResults from './components/SearchResults';
 import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
 import Notifications from './components/Notifications';
 import BottomNavBar from './components/BottomNavBar';
 import ChatPage from './components/ChatPage';
@@ -442,7 +441,9 @@ const App: React.FC = () => {
       return { users: [], posts: [] };
     }
     const lowercasedQuery = searchQuery.toLowerCase();
-    const filteredUsers = Object.values(users).filter(user =>
+    const filteredUsers = Object.values(users).filter(
+      (user): user is User => !!user && typeof user.name === 'string' && typeof user.uid === 'string'
+    ).filter(user =>
       user.name.toLowerCase().includes(lowercasedQuery) && user.uid !== currentUser?.uid
     );
     const filteredPosts = posts.filter(post =>
@@ -620,7 +621,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-6xl mx-auto p-4 lg:py-6 grid grid-cols-12 gap-8">
-        <aside className="col-span-3 hidden xl:block">
+        <aside className="col-span-3 hidden lg:block">
            <Sidebar
               currentUser={currentUser}
               allUsers={Object.values(users)}
@@ -629,11 +630,14 @@ const App: React.FC = () => {
               onFollowToggle={handleFollowToggle}
             />
         </aside>
-        <div className="col-span-12 xl:col-span-6">
+        <div className="col-span-12 lg:col-span-6">
             {renderPage()}
         </div>
-        <aside className="col-span-3 hidden xl:block">
-            {/* Right sidebar could have trends, ads, etc. */}
+        <aside className="col-span-3 hidden lg:block">
+            <RightSidebar
+                followingUsers={followingUsers}
+                onViewProfile={handleViewProfile}
+            />
         </aside>
       </main>
       
