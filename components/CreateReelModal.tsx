@@ -1,6 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { XIcon } from './Icons';
+import { useAuth } from '../contexts/AuthContext';
+import { uploadMedia } from '../contexts/services/supabaseService';
 
 interface CreateReelModalProps {
   isOpen: boolean;
@@ -9,10 +11,12 @@ interface CreateReelModalProps {
 }
 
 const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAddReel }) => {
+  const { user } = useAuth();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -20,20 +24,22 @@ const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAd
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setVideoFile(file);
-        setVideoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setVideoFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setVideoPreview(previewUrl);
     }
   };
 
   const resetState = () => {
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
     setVideoFile(null);
     setVideoPreview(null);
     setCaption('');
     setIsUploading(false);
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
   
   const handleClose = () => {
@@ -42,17 +48,33 @@ const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAd
   }
 
   const handleSubmit = async () => {
-    if (!videoFile) return;
+    if (!videoFile || !user) return;
 
     setIsUploading(true);
-    // Simulate upload delay
-    setTimeout(() => {
-        // For this demo, we'll use a placeholder URL instead of a real upload.
-        const placeholderVideoUrl = 'https://storage.googleapis.com/web-dev-assets/video-and-source-tags/chrome.mp4';
-        onAddReel(placeholderVideoUrl, caption);
+    setUploadError(null);
+    try {
+        const publicUrl = await uploadMedia(videoFile, 'reels', user.id);
+        onAddReel(publicUrl, caption);
         handleClose();
-    }, 1500);
+    } catch(error: any) {
+        console.error("Failed to upload reel:", error);
+        if (error.message && error.message.includes('security policy')) {
+            setUploadError("فشل الرفع. تحقق من سياسات RLS في Supabase للسماح بإدراج الملفات في 'reels'.");
+        } else {
+            setUploadError("فشل رفع الفيديو. الرجاء المحاولة مرة أخرى.");
+        }
+        setIsUploading(false);
+    }
   };
+  
+  React.useEffect(() => {
+    return () => {
+      if (videoPreview) {
+        URL.revokeObjectURL(videoPreview);
+      }
+    };
+  }, [videoPreview]);
+
 
   return (
     <div className="fixed inset-0 bg-slate-800 bg-opacity-90 z-50 flex justify-center items-center" aria-modal="true" role="dialog">
@@ -94,6 +116,12 @@ const CreateReelModal: React.FC<CreateReelModalProps> = ({ isOpen, onClose, onAd
                 accept="video/*"
             />
             
+            {uploadError && (
+              <div className="p-3 text-sm text-center text-red-700 bg-red-100 rounded-md">
+                {uploadError}
+              </div>
+            )}
+
             <div>
               <label htmlFor="caption" className="block text-sm font-medium text-slate-700 mb-1">
                 الوصف

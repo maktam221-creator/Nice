@@ -60,7 +60,7 @@ interface PostCardProps {
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
-  onSave: (postId: number) => void;
+  onSave: (post: Post) => void;
   onViewProfile: (user: User) => void;
   onEdit: (post: Post) => void;
   onDelete: (postId: number) => void;
@@ -160,7 +160,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike
           <span className="font-semibold transition-colors group-hover:text-green-500">مشاركة</span>
         </button>
         <button 
-          onClick={() => onSave(post.id)}
+          onClick={() => onSave(post)}
           className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
         >
           <BookmarkIcon className={`w-6 h-6 transition-colors ${post.isSaved ? 'text-blue-500 fill-current' : 'group-hover:text-blue-500'}`} />

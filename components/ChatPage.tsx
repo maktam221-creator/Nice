@@ -25,8 +25,29 @@ const ChatPage: React.FC<ChatPageProps> = ({
 }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(initialTargetUser);
   const [messageText, setMessageText] = useState('');
-  const [lockedChats, setLockedChats] = useState<string[]>([]); // Add state for locked chats
+  const [lockedChats, setLockedChats] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load locked chats from local storage on initial render
+  useEffect(() => {
+    try {
+      const savedLockedChats = localStorage.getItem('lockedChats');
+      if (savedLockedChats) {
+        setLockedChats(JSON.parse(savedLockedChats));
+      }
+    } catch (error) {
+      console.error("Failed to load locked chats from local storage", error);
+    }
+  }, []);
+
+  // Save locked chats to local storage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('lockedChats', JSON.stringify(lockedChats));
+    } catch (error) {
+      console.error("Failed to save locked chats to local storage", error);
+    }
+  }, [lockedChats]);
 
   useEffect(() => {
     if (initialTargetUser) {

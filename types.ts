@@ -80,3 +80,9 @@ export interface Story {
   timestamp: Date;
   viewed?: boolean;
 }
+
+export interface Bucket {
+  id: number;
+  user_id: string;
+  name: string;
+}

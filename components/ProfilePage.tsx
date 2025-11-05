@@ -1,24 +1,23 @@
 
-
-
-import React, { useState } from 'react';
-import { User, Post, Reel, Comment } from '../types';
+import React, { useState, useEffect } from 'react';
+import { User, Post, Reel, Comment, Bucket } from '../types';
 import PostCard from './PostCard';
 import CreatePost from './CreatePost';
-import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, HomeIcon, VideoCameraIcon, BookmarkIcon } from './Icons';
+import { PencilIcon, UserPlusIcon, EyeIcon, CogIcon, HomeIcon, VideoCameraIcon, BookmarkIcon, FolderIcon } from './Icons';
 import ProfileViewersModal from './ProfileViewersModal';
+import * as db from '../contexts/services/supabaseService';
+
 
 interface ProfilePageProps {
   user: User;
   posts: Post[];
   reels: Reel[];
-  savedPosts: Post[];
   comments: Record<number, Comment[]>;
   onLike: (postId: number) => void;
-  onSave: (postId: number) => void;
+  onSave: (post: Post) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
-  onAddPost: (text: string, media?: { url: string; type: 'image' | 'video' }) => void;
+  onAddPost: (text: string, media?: { url: string; type: 'image' | 'video' }) => Promise<void>;
   currentUser: User;
   handleViewProfile: (user: User) => void;
   onEditProfile: () => void;
@@ -29,13 +28,80 @@ interface ProfilePageProps {
   viewers?: { viewer: User; timestamp: string }[];
   onEditPost: (post: Post) => void;
   onDeletePost: (postId: number) => void;
+  buckets: Bucket[];
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPosts, comments, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onEditPost, onDeletePost }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, comments, onLike, onSave, onAddComment, onShare, onAddPost, currentUser, handleViewProfile, onEditProfile, onOpenSettings, onGoToChat, following, onFollowToggle, viewers, onEditPost, onDeletePost, buckets }) => {
   const [isViewersModalOpen, setIsViewersModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved'>('posts');
+  const [selectedBucketId, setSelectedBucketId] = useState<number | null>(null);
+  const [postsInBucket, setPostsInBucket] = useState<Post[]>([]);
+  const [isLoadingBucket, setIsLoadingBucket] = useState(false);
+
   const isCurrentUserProfile = user.uid === currentUser.uid;
   const isFollowing = following.includes(user.uid);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+        if (activeTab === 'saved' && selectedBucketId && isCurrentUserProfile) {
+            setIsLoadingBucket(true);
+            try {
+                const bucketPosts = await db.getPostsInBucket(selectedBucketId, currentUser.uid);
+                setPostsInBucket(bucketPosts);
+            } catch(error) {
+                console.error("Failed to fetch posts in bucket", error);
+                setPostsInBucket([]);
+            } finally {
+                setIsLoadingBucket(false);
+            }
+        }
+    };
+    fetchPosts();
+  }, [selectedBucketId, activeTab, isCurrentUserProfile, currentUser.uid]);
+
+  const renderSavedTabContent = () => {
+    if (!isCurrentUserProfile) return null;
+
+    if (selectedBucketId) {
+        return (
+            <div>
+                 <button onClick={() => setSelectedBucketId(null)} className="mb-4 text-sm font-semibold text-indigo-600 hover:underline">
+                    &larr; العودة إلى جميع القوائم
+                </button>
+                {isLoadingBucket ? (
+                    <div className="flex justify-center p-8"><div className="w-8 h-8 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div></div>
+                ) : postsInBucket.length > 0 ? (
+                    <div className="space-y-6">
+                        {postsInBucket.map(post => (
+                            <PostCard key={post.id} post={post} comments={comments[post.id] || []} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
+                        <p>هذه القائمة فارغة.</p>
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    return buckets.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {buckets.map(bucket => (
+                <button key={bucket.id} onClick={() => setSelectedBucketId(bucket.id)} className="aspect-square bg-slate-100 rounded-lg flex flex-col items-center justify-center p-4 text-center hover:bg-slate-200 transition-colors group">
+                    <FolderIcon className="w-12 h-12 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                    <p className="mt-2 font-semibold text-slate-700">{bucket.name}</p>
+                </button>
+            ))}
+        </div>
+    ) : (
+        <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
+            <p>لم تقم بإنشاء أي قوائم بعد.</p>
+            <p className="text-sm">انقر على أيقونة الحفظ في أي منشور للبدء.</p>
+        </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6">
@@ -143,7 +209,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
                 </button>
                 {isCurrentUserProfile && (
                      <button
-                        onClick={() => setActiveTab('saved')}
+                        onClick={() => { setActiveTab('saved'); setSelectedBucketId(null); }}
                         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 rtl:space-x-reverse ${activeTab === 'saved' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}
                     >
                         <BookmarkIcon className="w-5 h-5" />
@@ -183,19 +249,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ user, posts, reels, savedPost
             )
         )}
 
-        {activeTab === 'saved' && isCurrentUserProfile && (
-            savedPosts.length > 0 ? (
-                <div className="space-y-6">
-                    {savedPosts.map(post => (
-                        <PostCard key={post.id} post={post} comments={comments[post.id] || []} onLike={onLike} onAddComment={onAddComment} onShare={onShare} onSave={onSave} currentUser={currentUser} onViewProfile={handleViewProfile} onEdit={onEditPost} onDelete={onDeletePost} />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center text-slate-500 bg-white p-8 rounded-lg shadow-md">
-                    <p>لا توجد منشورات محفوظة.</p>
-                </div>
-            )
-        )}
+        {activeTab === 'saved' && renderSavedTabContent()}
       </div>
       
       {isCurrentUserProfile && (

@@ -12,7 +12,7 @@ interface SearchResultsProps {
   onLike: (postId: number) => void;
   onAddComment: (postId: number, text: string) => void;
   onShare: (postId: number) => void;
-  onSave: (postId: number) => void;
+  onSave: (post: Post) => void;
   onEdit: (post: Post) => void;
   onDelete: (postId: number) => void;
   query: string;

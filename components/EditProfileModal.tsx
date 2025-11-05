@@ -6,7 +6,7 @@ interface EditProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: User;
-  onSave: (updatedUser: User) => void;
+  onSave: (updatedUser: User) => Promise<void>;
 }
 
 const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, user, onSave }) => {
@@ -16,24 +16,27 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
   const [isGenderPublic, setIsGenderPublic] = useState(user.gender?.isPublic ?? true);
   const [country, setCountry] = useState(user.country?.value || '');
   const [isCountryPublic, setIsCountryPublic] = useState(user.country?.isPublic ?? true);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // This effect populates the form when the modal is opened or the user prop changes.
   useEffect(() => {
-    if (user) {
+    if (user && isOpen) {
       setName(user.name);
       setBio(user.bio || '');
       setGender(user.gender?.value || '');
       setIsGenderPublic(user.gender?.isPublic ?? true);
       setCountry(user.country?.value || '');
       setIsCountryPublic(user.country?.isPublic ?? true);
+      setSaveError(null);
     }
-  }, [user]);
+  }, [user, isOpen]);
 
   if (!isOpen) {
     return null;
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaveError(null);
     const updatedUser: User = {
       ...user,
       name,
@@ -41,8 +44,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
       gender: { value: gender, isPublic: isGenderPublic },
       country: { value: country, isPublic: isCountryPublic },
     };
-    onSave(updatedUser);
-    onClose();
+    try {
+      await onSave(updatedUser);
+      onClose();
+    } catch (error: any) {
+      setSaveError(error.message || 'فشل حفظ التغييرات. قد تكون هناك مشكلة في الاتصال أو الصلاحيات.');
+    }
   };
   
   const countries = ["السعودية", "مصر", "الإمارات", "الكويت", "قطر", "البحرين", "عمان", "الأردن", "لبنان", "المغرب", "تونس", "الجزائر"];
@@ -120,6 +127,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, us
               </div>
             </div>
           </div>
+          
+          {saveError && <p className="text-red-500 text-sm text-center py-2 bg-red-50 rounded-md">{saveError}</p>}
           
           <div className="flex justify-end items-center border-t pt-4 space-x-2 rtl:space-x-reverse">
             <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-md hover:bg-slate-200 transition-colors">
