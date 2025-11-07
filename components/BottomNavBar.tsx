@@ -1,19 +1,17 @@
 import React from 'react';
-import { HomeIcon, ProfileIcon, CreateIcon, LogoutIcon } from './Icons';
+import { HomeIcon, ProfileIcon, LogoutIcon } from './Icons';
 import { View } from '../types';
 
 type BottomNavBarProps = {
   setView: (view: View) => void;
   currentView: View;
-  onOpenCreate: () => void;
   signOut: () => void;
   currentUserId: string;
 };
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ setView, currentView, onOpenCreate, signOut, currentUserId }) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ setView, currentView, signOut, currentUserId }) => {
   const navItems = [
     { name: 'الرئيسية', icon: HomeIcon, page: 'feed' as const, action: () => setView({ page: 'feed' }) },
-    { name: 'إنشاء', icon: CreateIcon, page: 'create' as const, action: onOpenCreate },
     { name: 'الملف الشخصي', icon: ProfileIcon, page: 'profile' as const, action: () => setView({ page: 'profile', userId: currentUserId }) },
     { name: 'الخروج', icon: LogoutIcon, page: 'logout' as const, action: signOut },
   ];

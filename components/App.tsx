@@ -5,6 +5,8 @@ import ProfilePage from './ProfilePage';
 import BottomNavBar from './BottomNavBar';
 import AuthPage from './AuthPage';
 import CreatePost from './CreatePost';
+import Header from './Header';
+import CreatePostPrompt from './CreatePostPrompt';
 import { Post, View, Comment } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../contexts/services/supabaseService';
@@ -120,6 +122,7 @@ const App: React.FC = () => {
     // Default to feed
     return (
       <div className="w-full max-w-2xl mx-auto py-8 px-4">
+        <CreatePostPrompt onOpenCreate={() => setCreateModalOpen(true)} />
         {postsLoading ? (
           <p className="text-center text-slate-500">جاري تحميل المنشورات...</p>
         ) : postsError ? (
@@ -147,18 +150,17 @@ const App: React.FC = () => {
         <Sidebar 
           setView={setView} 
           currentView={view}
-          onOpenCreate={() => setCreateModalOpen(true)}
           signOut={signOut} 
           currentUserId={profile.id}
         />
         <main className="flex-1 transition-all duration-300 md:mr-64 pb-20 md:pb-0">
+          <Header />
           {renderContent()}
         </main>
       </div>
       <BottomNavBar 
         setView={setView}
         currentView={view} 
-        onOpenCreate={() => setCreateModalOpen(true)}
         signOut={signOut}
         currentUserId={profile.id}
       />
