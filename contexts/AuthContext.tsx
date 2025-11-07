@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (insertError) {
         console.error("Error creating profile:", insertError);
         setProfile(null);
-        setAuthError("حدث خطأ أثناء إعداد حسابك. الرجاء المحاولة مرة أخرى.");
+        setAuthError("فشل إنشاء الملف الشخصي. يرجى التحقق من سياسات RLS في Supabase. تأكد من وجود سياسة تسمح للمستخدمين الجدد بإضافة بياناتهم إلى جدول 'profiles'.");
       } else {
         setProfile(createdProfile);
         setAuthError(null);
@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (error) {
         console.error("Error fetching profile:", error);
         setProfile(null);
-        setAuthError("لم نتمكن من تحميل ملفك الشخصي. قد تكون هناك مشكلة في الاتصال أو في إعدادات حسابك.");
+        setAuthError("فشل تحميل الملف الشخصي. يرجى التحقق من سياسات RLS في Supabase. تأكد من وجود سياسة تسمح للمستخدمين بقراءة ملفاتهم الشخصية في جدول 'profiles'.");
     } else {
         setProfile(data);
         setAuthError(null); // Clear error on success

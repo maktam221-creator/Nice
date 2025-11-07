@@ -65,7 +65,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ userId, setView }) => {
 
     } catch (err: any) {
       console.error("Error fetching profile data:", err);
-      setError("لم نتمكن من تحميل هذا الملف الشخصي.");
+      setError("فشل تحميل الملف الشخصي. يرجى التحقق من سياسات RLS في Supabase. تأكد من وجود سياسات تسمح بقراءة جداول 'profiles', 'posts', و 'followers'.");
     } finally {
       setLoading(false);
     }

@@ -83,7 +83,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
       onClose();
     } catch (err: any) {
       console.error('Error creating post:', err);
-      setError(err.message || 'فشل في إنشاء المنشور.');
+      setError(err.message || 'فشل في إنشاء المنشور. يرجى التحقق من سياسات RLS في Supabase لجداول \'posts\' وتخزين الملفات.');
     } finally {
       setIsUploading(false);
     }

@@ -29,7 +29,7 @@ const App: React.FC = () => {
 
     if (error) {
       console.error('Error fetching posts:', error);
-      setPostsError("حدث خطأ أثناء جلب المنشورات. قد يكون السبب مشكلة في الشبكة أو في صلاحيات الوصول للبيانات (RLS) في Supabase.");
+      setPostsError("فشل جلب المنشورات. يرجى التحقق من سياسات RLS في Supabase. تأكد من وجود سياسة تسمح للمستخدمين المسجلين بقراءة جدول 'posts'.");
       setPosts([]);
     } else if (data) {
       setPosts(data as Post[]);
