@@ -74,7 +74,7 @@ const FeedPage: React.FC<FeedPageProps> = ({ setView }) => {
         <CreatePost
           onClose={() => setIsCreatePostOpen(false)}
           onPostCreated={() => {
-            // No need to call fetchPosts here as the subscription will handle it
+            fetchPosts(); // Explicitly fetch posts for immediate update
           }}
         />
       )}
