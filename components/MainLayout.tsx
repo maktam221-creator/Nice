@@ -6,6 +6,7 @@ import BottomNavBar from './BottomNavBar';
 import FeedPage from './FeedPage';
 import ProfilePage from './ProfilePage';
 import Header from './Header';
+import RightSidebar from './RightSidebar';
 
 const MainLayout: React.FC = () => {
   const { profile, signOut } = useAuth();
@@ -30,14 +31,18 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex justify-center min-h-screen bg-slate-50">
+    <div className="bg-slate-50 min-h-screen">
         <Sidebar setView={setView} currentView={view} signOut={signOut} currentUserId={profile.id} />
-        <div className="w-full md:mr-64 flex flex-col">
+        <RightSidebar setView={setView} />
+        
+        {/* Main Content Area */}
+        <div className="md:mr-64 xl:ml-80 flex flex-col min-h-screen">
             <Header />
             <main className="flex-1 w-full max-w-2xl mx-auto pt-8 md:pt-12 px-4 pb-24 md:pb-8">
                  {renderContent()}
             </main>
         </div>
+
         <BottomNavBar setView={setView} currentView={view} signOut={signOut} currentUserId={profile.id} />
     </div>
   );
