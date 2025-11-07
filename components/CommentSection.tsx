@@ -1,54 +1,38 @@
+import React from 'react';
+import { Comment } from '../types';
 
-import React, { useState } from 'react';
-import { Comment, User } from '../types';
-
-interface CommentSectionProps {
+type CommentSectionProps = {
   comments: Comment[];
-  onAddComment: (text: string) => void;
-  currentUser: User;
-}
+  onClose: () => void;
+};
 
-const CommentSection: React.FC<CommentSectionProps> = ({ comments, onAddComment, currentUser }) => {
-  const [newComment, setNewComment] = useState('');
-
-  const handleCommentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newComment.trim()) {
-      onAddComment(newComment);
-      setNewComment('');
-    }
-  };
+const CommentSection: React.FC<CommentSectionProps> = ({ comments, onClose }) => {
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-200">
-      {/* Add new comment form */}
-      <form onSubmit={handleCommentSubmit} className="flex items-start space-x-3 mb-4">
-        <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-9 h-9 rounded-full" />
-        <div className="w-full">
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="اكتب تعليقاً..."
-            className="w-full p-2 text-sm border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-          />
-          <button type="submit" className="hidden">
-            Submit
-          </button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-md max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b sticky top-0 bg-white">
+          <h3 className="text-lg font-bold text-center">التعليقات</h3>
+          <button onClick={onClose} className="absolute top-3 right-4 text-2xl font-light">&times;</button>
         </div>
-      </form>
-
-      {/* List of comments */}
-      <div className="space-y-4">
-        {comments.map((comment) => (
-          <div key={comment.id} className="flex items-start space-x-3 text-sm">
-            <img src={comment.author.avatarUrl} alt={comment.author.name} className="w-9 h-9 rounded-full" />
-            <div className="bg-slate-100 p-3 rounded-lg flex-1">
-              <p className="font-semibold text-slate-800">{comment.author.name}</p>
-              <p className="text-slate-600">{comment.text}</p>
-            </div>
-          </div>
-        ))}
+        <div className="p-4 space-y-4">
+          {comments.map(comment => {
+            const user = comment.profiles;
+            return (
+              <div key={comment.id} className="flex items-start gap-3">
+                <img src={user?.avatar_url} alt={user?.username} className="w-8 h-8 rounded-full" />
+                <div>
+                  <p>
+                    <span className="font-semibold">{user?.username}</span>{' '}
+                    {comment.text}
+                  </p>
+                  <p className="text-xs text-slate-500">{comment.created_at}</p>
+                </div>
+              </div>
+            );
+          })}
+           {comments.length === 0 && <p className="text-center text-slate-500 py-4">لا توجد تعليقات بعد.</p>}
+        </div>
       </div>
     </div>
   );

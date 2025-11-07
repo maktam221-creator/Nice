@@ -1,62 +1,63 @@
 import React from 'react';
-import { User } from '../types';
-import { UserPlusIcon } from './Icons';
+import { HomeIcon, ProfileIcon, CreateIcon, LogoutIcon } from './Icons';
+import { View } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
-interface SidebarProps {
-  currentUser: User;
-  allUsers: User[];
-  following: string[];
-  onViewProfile: (user: User) => void;
-  onFollowToggle: (userUid: string) => void;
-}
+type SidebarProps = {
+  setView: (view: View) => void;
+  currentView: View;
+  onOpenCreate: () => void;
+  signOut: () => void;
+  currentUserId: string;
+};
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, allUsers, following, onViewProfile, onFollowToggle }) => {
-  // Suggest users who are not the current user and are not being followed.
-  const suggestions = allUsers
-    .filter(user => user.uid !== currentUser.uid && !following.includes(user.uid))
-    .slice(0, 3); // Show up to 3 suggestions
+const Sidebar: React.FC<SidebarProps> = ({ setView, currentView, onOpenCreate, signOut, currentUserId }) => {
+  
+  const navItems = [
+    { name: 'الرئيسية', icon: HomeIcon, page: 'feed' as const, action: () => setView({ page: 'feed' }) },
+    { name: 'إنشاء', icon: CreateIcon, page: 'create' as const, action: onOpenCreate },
+    { name: 'الملف الشخصي', icon: ProfileIcon, page: 'profile' as const, action: () => setView({ page: 'profile', userId: currentUserId }) },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Current User Profile Card */}
-      <div className="bg-white p-4 rounded-lg shadow-md">
-         <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">ملفك الشخصي</h3>
-         <button onClick={() => onViewProfile(currentUser)} className="w-full flex items-center space-x-4 rtl:space-x-reverse group text-right">
-            <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-12 h-12 rounded-full" />
-            <div>
-                <p className="font-bold text-slate-800 group-hover:underline">{currentUser.name}</p>
-                <p className="text-sm text-slate-500">عرض الملف الشخصي</p>
-            </div>
-        </button>
+    <aside className="fixed top-0 right-0 h-full w-64 bg-white border-l border-slate-200 p-6 shadow-sm transform translate-x-0 transition-transform duration-300 z-20 hidden md:block flex flex-col">
+      <div className="text-2xl font-bold text-indigo-600 mb-10">
+        تطبيقنا
       </div>
-
-      {/* Suggestions Card */}
-      {suggestions.length > 0 && (
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <h3 className="font-bold text-slate-800 mb-4 border-b pb-2">اقتراحات للمتابعة</h3>
-          <div className="space-y-4">
-            {suggestions.map(user => (
-              <div key={user.uid} className="flex items-center justify-between">
-                <button onClick={() => onViewProfile(user)} className="flex items-center space-x-3 rtl:space-x-reverse group text-right">
-                  <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full" />
-                  <div>
-                    <p className="font-semibold text-sm text-slate-800 group-hover:underline">{user.name}</p>
-                  </div>
-                </button>
-                <button
-                    onClick={() => onFollowToggle(user.uid)}
-                    className="flex items-center justify-center space-x-2 rtl:space-x-reverse px-3 py-1.5 text-xs font-medium rounded-full transition-colors text-white bg-indigo-600 hover:bg-indigo-700"
-                    aria-label={`متابعة ${user.name}`}
-                >
-                    <UserPlusIcon className="w-4 h-4" />
-                    <span>متابعة</span>
-                </button>
-              </div>
-            ))}
-          </div>
+      <nav className="flex-1">
+        <ul>
+          {navItems.map(item => {
+             const isActive = item.page === 'profile' 
+                ? currentView.page === 'profile' && currentView.userId === currentUserId
+                : currentView.page === item.page;
+             return (
+                 <li key={item.name} className="mb-2">
+                  <button
+                    onClick={item.action}
+                    className={`w-full flex items-center gap-4 p-3 rounded-lg text-lg font-medium transition-colors duration-200 ${
+                      isActive
+                        ? 'bg-indigo-100 text-indigo-600'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <item.icon className="w-6 h-6" />
+                    {item.name}
+                  </button>
+                </li>
+             )
+          })}
+        </ul>
+      </nav>
+       <div className="mt-auto">
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-4 p-3 rounded-lg text-lg font-medium text-slate-600 hover:bg-slate-100 transition-colors duration-200"
+          >
+            <LogoutIcon className="w-6 h-6" />
+            تسجيل الخروج
+          </button>
         </div>
-      )}
-    </div>
+    </aside>
   );
 };
 

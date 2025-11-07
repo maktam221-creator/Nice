@@ -1,163 +1,169 @@
-
-
-import React, { useState, useRef } from 'react';
-import { User } from '../types';
-import { PhotoIcon, VideoCameraIcon, XCircleIcon } from './Icons';
+import React, { useState } from 'react';
+import { supabase } from '../contexts/services/supabaseService';
+import { uploadFile } from '../contexts/services/storageService';
 import { useAuth } from '../contexts/AuthContext';
-import { uploadMedia } from '../contexts/services/supabaseService';
+import { generateSteps } from '../contexts/services/geminiService';
+import { SparklesIcon } from './Icons';
 
-interface CreatePostProps {
-  currentUser: User;
-  onAddPost: (text: string, media?: { url: string; type: 'image' | 'video' }) => Promise<void>;
-}
+type CreatePostProps = {
+  onClose: () => void;
+  onPostCreated: () => void;
+};
 
-const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onAddPost }) => {
-  const { user } = useAuth();
-  const [postText, setPostText] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
+  const { profile } = useAuth();
+  const [caption, setCaption] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setMediaFile(file);
-      setMediaType(type);
-      const previewUrl = URL.createObjectURL(file);
-      setMediaPreview(previewUrl);
-    }
-  };
-
-  const removeMedia = () => {
-    if (mediaPreview) {
-      URL.revokeObjectURL(mediaPreview);
-    }
-    setMediaFile(null);
-    setMediaPreview(null);
-    setMediaType(null);
-    if (imageInputRef.current) imageInputRef.current.value = "";
-    if (videoInputRef.current) videoInputRef.current.value = "";
-  };
+  const [error, setError] = useState<string | null>(null);
   
-  React.useEffect(() => {
-    return () => {
-      if (mediaPreview) {
-        URL.revokeObjectURL(mediaPreview);
-      }
-    };
-  }, [mediaPreview]);
+  // AI Mode State
+  const [mode, setMode] = useState<'upload' | 'ai'>('upload');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
+
+  const handleGenerateSteps = async () => {
+    if (!aiPrompt.trim()) return;
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const generatedCaption = await generateSteps(aiPrompt);
+      setCaption(generatedCaption);
+      setMode('upload'); // Switch back to upload mode to see the result
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-        console.error("User not authenticated");
-        return;
-    }
-    if (postText.trim() || mediaFile) {
-        setIsUploading(true);
-        setUploadError(null);
-        let mediaData: { url: string; type: 'image' | 'video' } | undefined = undefined;
+    if (!file || !profile) return;
 
-        try {
-            if (mediaFile && mediaType) {
-                const publicUrl = await uploadMedia(mediaFile, 'posts', user.id);
-                mediaData = { url: publicUrl, type: mediaType };
-            }
-            await onAddPost(postText, mediaData);
-            setPostText('');
-            removeMedia();
-        } catch (error: any) {
-            console.error("Failed to create post:", error);
-            let errorMessage = "فشل النشر. حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.";
-            if (error && typeof error.message === 'string') {
-                if (error.message.includes('security policy') || error.message.includes('permission denied')) {
-                    errorMessage = "فشل النشر. تحقق من سياسات الأمان (RLS) في Supabase للسماح بالعملية المطلوبة.";
-                } else {
-                    errorMessage = error.message;
-                }
-            }
-            setUploadError(errorMessage);
-        } finally {
-            setIsUploading(false);
-        }
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const fileUrl = await uploadFile(file, `posts/${profile.id}/${Date.now()}_${file.name}`);
+      
+      const postData: {
+        user_id: string;
+        caption: string;
+        image_url?: string;
+        video_url?: string;
+      } = {
+        user_id: profile.id,
+        caption: caption,
+      };
+
+      if (file.type.startsWith('image/')) {
+        postData.image_url = fileUrl;
+      } else if (file.type.startsWith('video/')) {
+        postData.video_url = fileUrl;
+      }
+
+      const { error: insertError } = await supabase.from('posts').insert(postData);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      onPostCreated();
+      onClose();
+    } catch (err: any) {
+      console.error('Error creating post:', err);
+      setError(err.message || 'فشل في إنشاء المنشور.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  return (
-    <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-      <div className="flex items-start space-x-4 rtl:space-x-reverse">
-        <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-12 h-12 rounded-full" />
-        <form onSubmit={handleSubmit} className="w-full">
-          <textarea
-            value={postText}
-            onChange={(e) => setPostText(e.target.value)}
-            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"
-            rows={3}
-            placeholder={`بماذا تفكر يا ${currentUser.name}؟`}
-            disabled={isUploading}
-          />
-          
-          {uploadError && (
-              <div className="mt-2 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200">
-                  <p><strong className="font-semibold">فشل النشر:</strong> {uploadError}</p>
-              </div>
-          )}
-
-          {mediaPreview && (
-            <div className="mt-4 relative">
-              {mediaType === 'image' ? (
-                <img src={mediaPreview} alt="معاينة" className="rounded-lg w-full max-h-80 object-cover" />
+  const renderUploadMode = () => (
+     <form onSubmit={handleSubmit}>
+        <div className="p-4 border-b flex justify-between items-center">
+          <h3 className="text-lg font-bold text-center flex-1">إنشاء منشور جديد</h3>
+          <button type="submit" className="text-indigo-600 font-semibold disabled:opacity-50" disabled={isUploading || !file}>
+            {isUploading ? 'جاري النشر...' : 'نشر'}
+          </button>
+        </div>
+        <div className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 max-h-[70vh]">
+            <div className="w-full md:w-1/2 flex items-center justify-center bg-slate-100 rounded-lg aspect-square">
+              {preview ? (
+                file?.type.startsWith('video/') ? (
+                  <video src={preview} controls className="max-h-full max-w-full rounded-lg" />
+                ) : (
+                  <img src={preview} alt="preview" className="max-h-full max-w-full rounded-lg" />
+                )
               ) : (
-                <video src={mediaPreview} controls className="rounded-lg w-full max-h-80 bg-black" />
-              )}
-              {!isUploading && (
-                <button
-                    type="button"
-                    onClick={removeMedia}
-                    className="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-75 transition-colors"
-                    aria-label="إزالة الوسائط"
-                >
-                    <XCircleIcon className="w-6 h-6" />
-                </button>
+                <div className="text-center p-4">
+                   <label htmlFor="file-upload" className="cursor-pointer bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition">
+                      اختر من جهازك
+                   </label>
+                   <input id="file-upload" type="file" accept="image/*,video/*" onChange={handleFileChange} className="hidden" />
+                </div>
               )}
             </div>
-          )}
-          {isUploading && (
-              <div className="mt-2 flex items-center justify-center text-slate-500">
-                  <div className="w-5 h-5 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin mr-2"></div>
-                  <span>جاري الرفع...</span>
-              </div>
-          )}
-
-          <div className="flex justify-between items-center mt-2">
-            <div className="flex items-center space-x-2 rtl:space-x-reverse">
-              <input type="file" ref={imageInputRef} onChange={(e) => handleFileChange(e, 'image')} accept="image/*" className="hidden" />
-              <input type="file" ref={videoInputRef} onChange={(e) => handleFileChange(e, 'video')} accept="video/*" className="hidden" />
-              <button type="button" onClick={() => imageInputRef.current?.click()} disabled={isUploading} className="flex items-center space-x-2 rtl:space-x-reverse p-2 rounded-md text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50">
-                <PhotoIcon className="w-6 h-6" />
-                <span className="text-sm font-semibold hidden sm:block">صورة</span>
-              </button>
-              <button type="button" onClick={() => videoInputRef.current?.click()} disabled={isUploading} className="flex items-center space-x-2 rtl:space-x-reverse p-2 rounded-md text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50">
-                <VideoCameraIcon className="w-6 h-6" />
-                <span className="text-sm font-semibold hidden sm:block">فيديو</span>
+            <div className="w-full md:w-1/2">
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="اكتب تعليقاً..."
+                className="w-full h-48 bg-slate-50 border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"
+                required
+              />
+               <button type="button" onClick={() => setMode('ai')} className="mt-2 flex items-center gap-2 text-sm text-indigo-600 font-semibold hover:text-indigo-800">
+                <SparklesIcon className="w-5 h-5" />
+                إنشاء بالذكاء الاصطناعي
               </button>
             </div>
+          </div>
+        </div>
+      </form>
+  );
 
-            <button
-              type="submit"
-              disabled={(!postText.trim() && !mediaFile) || isUploading}
-              className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
-            >
-              {isUploading ? 'جاري النشر...' : 'نشر'}
+  const renderAiMode = () => (
+     <div>
+        <div className="p-4 border-b">
+          <h3 className="text-lg font-bold text-center">إنشاء بالذكاء الاصطناعي</h3>
+        </div>
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-slate-600">اكتب الموضوع الذي تريد إنشاء دليل إرشادي له. مثلاً: "طريقة عمل القهوة المقطرة".</p>
+          <textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="أدخل موضوعك هنا..."
+              className="w-full h-24 bg-slate-50 border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"
+          />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setMode('upload')} className="py-2 px-4 text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200">
+              إلغاء
+            </button>
+             <button onClick={handleGenerateSteps} disabled={isGenerating || !aiPrompt.trim()} className="py-2 px-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300 flex items-center gap-2">
+               <SparklesIcon className="w-5 h-5" />
+               {isGenerating ? 'جاري الإنشاء...' : 'إنشاء الخطوات'}
             </button>
           </div>
-        </form>
+        </div>
+      </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-lg" onClick={e => e.stopPropagation()}>
+         {mode === 'upload' ? renderUploadMode() : renderAiMode()}
+         {error && <p className="text-red-500 text-sm p-4 pt-0">{error}</p>}
       </div>
     </div>
   );

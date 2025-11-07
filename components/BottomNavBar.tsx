@@ -1,57 +1,47 @@
 import React from 'react';
-import { HomeIcon, BellIcon, UserIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from './Icons';
-import { User } from '../types';
+import { HomeIcon, ProfileIcon, CreateIcon, LogoutIcon } from './Icons';
+import { View } from '../types';
 
-type Page = 'home' | 'profile' | 'chat' | 'shorts';
+type BottomNavBarProps = {
+  setView: (view: View) => void;
+  currentView: View;
+  onOpenCreate: () => void;
+  signOut: () => void;
+  currentUserId: string;
+};
 
-interface BottomNavBarProps {
-    currentPage: Page;
-    searchQuery: string;
-    viewedProfileUid: string | null;
-    currentUser: User;
-    onHomeClick: () => void;
-    onShortsClick: () => void;
-    onProfileClick: () => void;
-    onChatClick: () => void;
-}
-
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ 
-    currentPage, 
-    searchQuery, 
-    viewedProfileUid, 
-    currentUser, 
-    onHomeClick, 
-    onShortsClick, 
-    onProfileClick,
-    onChatClick
-}) => {
-    
-    const navItems = [
-        { name: 'الرئيسية', icon: HomeIcon, action: onHomeClick, active: currentPage === 'home' && !searchQuery },
-        { name: 'فيديوهات', icon: VideoCameraIcon, action: onShortsClick, active: currentPage === 'shorts' },
-        { name: 'الدردشات', icon: ChatBubbleLeftRightIcon, action: onChatClick, active: currentPage === 'chat' },
-        { name: 'ملفي', icon: UserIcon, action: onProfileClick, active: currentPage === 'profile' && viewedProfileUid === currentUser.uid },
-    ];
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ setView, currentView, onOpenCreate, signOut, currentUserId }) => {
+  const navItems = [
+    { name: 'الرئيسية', icon: HomeIcon, page: 'feed' as const, action: () => setView({ page: 'feed' }) },
+    { name: 'إنشاء', icon: CreateIcon, page: 'create' as const, action: onOpenCreate },
+    { name: 'الملف الشخصي', icon: ProfileIcon, page: 'profile' as const, action: () => setView({ page: 'profile', userId: currentUserId }) },
+    { name: 'الخروج', icon: LogoutIcon, page: 'logout' as const, action: signOut },
+  ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] z-40">
-      <div className="max-w-7xl mx-auto flex justify-around">
-        {navItems.map(item => (
-          <button
-            key={item.name}
-            onClick={item.action}
-            className="flex-1 flex flex-col items-center justify-center pt-2 pb-1 text-xs font-medium transition-colors group focus:outline-none"
-            aria-label={item.name}
-          >
-            <div className="relative">
-              <item.icon className={`w-7 h-7 mb-1 transition-colors ${item.active ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-500'}`} />
-            </div>
-            <span className={`transition-colors ${item.active ? 'text-indigo-600' : 'text-slate-600 group-hover:text-indigo-500'}`}>
-                {item.name}
-            </span>
-          </button>
-        ))}
-      </div>
+    <nav className="fixed bottom-0 right-0 w-full bg-white border-t border-slate-200 p-2 shadow-lg md:hidden z-20">
+      <ul className="flex justify-around items-center">
+        {navItems.map(item => {
+            const isActive = item.page === 'profile' 
+                ? currentView.page === 'profile' && currentView.userId === currentUserId
+                : currentView.page === item.page;
+           return (
+             <li key={item.name}>
+              <button
+                onClick={item.action}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors duration-200 w-20 ${
+                  isActive
+                    ? 'text-indigo-600'
+                    : 'text-slate-500'
+                }`}
+              >
+                <item.icon className="w-7 h-7" />
+                <span className="text-xs">{item.name}</span>
+              </button>
+            </li>
+           )
+        })}
+      </ul>
     </nav>
   );
 };

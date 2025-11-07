@@ -1,139 +1,124 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { createClient, Session, User as SupabaseUser } from '@supabase/supabase-js';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { Session, User as AuthUser } from '@supabase/supabase-js';
+import { supabase } from './services/supabaseService';
 import { User } from '../types';
-import { fromProfileSnakeCase } from './services/supabaseService';
-
-// --- Supabase Client Setup ---
-const supabaseUrl = 'https://eizibjccgfblmddpynco.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpemliamNjZ2ZibG1kZHB5bmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1NDgxNzEsImV4cCI6MjA3NzEyNDE3MX0._SOUbqxU-5c8rrqdkz6FWnaX5LtrCnuJ_th-UrZGUdo';
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Supabase URL and Anon Key must be provided.");
-}
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-// -----------------------------
-
 
 interface AuthContextType {
   session: Session | null;
-  user: SupabaseUser | null;
+  user: AuthUser | null;
   profile: User | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-  updateProfile: (updatedProfile: User) => Promise<void>;
+  authLoading: boolean;
+  authError: string | null;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const getSession = async () => {
+      setAuthLoading(true);
+      setAuthError(null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
-        if (!session) {
-            setProfile(null);
+        if (session?.user) {
+          await fetchProfile(session.user);
+        }
+      } catch (e) {
+         setAuthError("فشل في استرداد جلسة المستخدم.");
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    getSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchProfile(session.user);
+        } else {
+          setProfile(null);
+          setAuthError(null); // Clear error on sign out
         }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
     return () => {
-      subscription?.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
+  
+  const fetchProfile = async (authUser: AuthUser) => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+    
+    // Self-healing: If profile doesn't exist, create it.
+    if (error && error.code === 'PGRST116') {
+      console.warn('Profile not found, creating a new one...');
+      const newProfile = {
+        id: authUser.id,
+        username: authUser.user_metadata.username || authUser.email?.split('@')[0],
+        avatar_url: authUser.user_metadata.avatar_url || `https://api.dicebear.com/6.x/initials/svg?seed=${authUser.email?.split('@')[0]}`,
+        bio: '',
+      };
+      
+      const { data: createdProfile, error: insertError } = await supabase
+        .from('profiles')
+        .insert(newProfile)
+        .select()
+        .single();
 
-  useEffect(() => {
-    const fetchAndSetProfile = async () => {
-      if (user) {
-        setLoading(true);
-        // 1. Attempt to fetch the profile
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (data) {
-          // 2. Profile exists, set it
-          setProfile(fromProfileSnakeCase(data));
-        } else if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-          // 3. A real error occurred during fetch
-          console.error('Error fetching profile:', error.message);
-          setProfile(null); // Do not proceed if profile can't be fetched
-        } else {
-          // 4. Profile does not exist, so create it
-          const newProfileData = {
-            id: user.id,
-            name: user.user_metadata?.name || user.email?.split('@')[0] || 'مستخدم جديد',
-            avatar_url: user.user_metadata?.avatar_url || `https://i.pravatar.cc/150?u=${user.id}`,
-          };
-          
-          const { data: insertedData, error: insertError } = await supabase
-            .from('profiles')
-            .insert(newProfileData)
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Error creating profile:', insertError.message);
-            // CRITICAL FIX: If profile creation fails (likely due to RLS),
-            // sign out the user to prevent an inconsistent state. They will
-            // be returned to the login page.
-            await supabase.auth.signOut();
-            setProfile(null);
-          } else {
-            // Set the newly created profile to state from the returned data
-            setProfile(fromProfileSnakeCase(insertedData));
-          }
-        }
-        setLoading(false);
+      if (insertError) {
+        console.error("Error creating profile:", insertError);
+        setProfile(null);
+        setAuthError("حدث خطأ أثناء إعداد حسابك. الرجاء المحاولة مرة أخرى.");
+      } else {
+        setProfile(createdProfile);
+        setAuthError(null);
       }
-    };
+    } else if (error) {
+        console.error("Error fetching profile:", error);
+        setProfile(null);
+        setAuthError("لم نتمكن من تحميل ملفك الشخصي. قد تكون هناك مشكلة في الاتصال أو في إعدادات حسابك.");
+    } else {
+        setProfile(data);
+        setAuthError(null); // Clear error on success
+    }
+  };
 
-    fetchAndSetProfile();
-  }, [user]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
-
-  const updateProfile = async (updatedProfile: User) => {
-    if (!user) throw new Error("No user logged in");
-
-    const updates = {
-        id: user.id,
-        name: updatedProfile.name,
-        avatar_url: updatedProfile.avatarUrl,
-        bio: updatedProfile.bio,
-        gender: updatedProfile.gender,
-        country: updatedProfile.country,
-        updated_at: new Date().toISOString(),
-    };
-
-    const { error } = await supabase.from('profiles').upsert(updates);
-
-    if (error) {
-        console.error('Error updating profile:', error.message);
-        throw error;
-    } else {
-        setProfile(prevProfile => ({ ...prevProfile, ...updatedProfile }));
-    }
+  
+  const value = {
+    session,
+    user,
+    profile,
+    authLoading,
+    authError,
+    signOut,
   };
 
-  const value = { session, user, profile, loading, signOut, updateProfile };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!authLoading ? children : <div className="flex justify-center items-center h-screen">جاري التحميل...</div>}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

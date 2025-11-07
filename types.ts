@@ -1,88 +1,55 @@
-// Fix: Added optional fields to User type to support profile information.
+import { PostgrestError } from '@supabase/supabase-js';
+
+// Based on Supabase auth.users table and profiles table
 export interface User {
-  uid: string;
-  name: string;
-  avatarUrl: string;
-  bio?: string;
-  isOnline?: boolean;
-  gender?: {
-      value: string;
-      isPublic: boolean;
-  };
-  country?: {
-      value: string;
-      isPublic: boolean;
-  };
+  id: string;
+  username: string;
+  avatar_url: string;
+  bio: string;
+  postsCount?: number;
+  followersCount?: number;
+  followingCount?: number;
+  isFollowing?: boolean;
 }
 
-export interface Post {
-  id: number;
-  author: User;
-  text: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  likes: number;
-  comments: number;
-  shares: number;
-  timestamp: Date;
-  isLiked?: boolean;
-  isSaved?: boolean;
-}
-
-// Fix: Added missing Comment type definition.
-export interface Comment {
-  id: number;
-  author: User;
-  text: string;
-}
-
-// Fix: Added missing Reel type definition.
-export interface Reel {
-  id: number;
-  author: User;
-  videoUrl: string;
-  caption: string;
-  music?: string;
-  likes: number;
-  isLiked: boolean;
-  shares: number;
-  comments: Comment[];
-}
-
-// Fix: Added missing NotificationType type definition.
-export type NotificationType = 'like' | 'comment' | 'follow' | 'message';
-
-// Fix: Added missing Notification type definition.
-export interface Notification {
-  id: number;
-  actor: User;
-  type: NotificationType;
-  timestamp: string;
-  read: boolean;
-}
-
-// Fix: Added missing Message type definition.
-export interface Message {
-  id: number;
-  senderKey: string;
-  receiverKey: string;
-  text: string;
-  timestamp: Date;
-}
-
-// Fix: Added missing Story type definition.
-export interface Story {
-  id: number;
-  type: 'image' | 'text';
-  content: string;
-  caption?: string;
-  backgroundColor?: string;
-  timestamp: Date;
-  viewed?: boolean;
-}
-
-export interface Bucket {
-  id: number;
+export interface Like {
   user_id: string;
-  name: string;
 }
+
+export interface Comment {
+  id: string;
+  text: string;
+  user_id: string;
+  post_id: string;
+  created_at: string;
+  profiles?: Pick<User, 'username' | 'avatar_url'>; // Include user profile
+}
+
+// Based on Supabase posts table
+export interface Post {
+  id: string;
+  user_id: string;
+  image_url?: string;
+  video_url?: string;
+  caption: string;
+  likes: Like[]; 
+  comments: Comment[]; 
+  created_at: string;
+  profiles: User; // Joined profile data
+}
+
+export type DbResult<T> = T extends PromiseLike<infer U> ? U : never;
+export type DbResultOk<T> = T extends PromiseLike<{ data: infer U }>
+  ? Exclude<U, null>
+  : never;
+export type DbResultErr = PostgrestError;
+
+export interface HowToStep {
+  title: string;
+  description: string;
+}
+
+export type View = {
+  page: 'feed' | 'profile';
+  userId?: string;
+};

@@ -1,180 +1,149 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Post, User, Comment } from '../types';
-import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from './Icons';
+import React, { useState, useEffect } from 'react';
+import { Post, View, Comment } from '../types';
+import { HeartIcon, CommentIcon, ShareIcon, OptionsIcon } from './Icons';
 import CommentSection from './CommentSection';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../contexts/services/supabaseService';
 
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
-  const minutes = Math.round(seconds / 60);
-  const hours = Math.round(minutes / 60);
-  const days = Math.round(hours / 24);
-  const weeks = Math.round(days / 7);
-  const months = Math.round(days / 30);
-  const years = Math.round(days / 365);
-
-  if (seconds < 5) return 'الآن';
-  if (seconds < 60) return `منذ ${seconds} ثوانٍ`;
-
-  if (minutes < 60) {
-    if (minutes === 1) return `منذ دقيقة`;
-    if (minutes === 2) return `منذ دقيقتين`;
-    if (minutes <= 10) return `منذ ${minutes} دقائق`;
-    return `منذ ${minutes} دقيقة`;
-  }
-  
-  if (hours < 24) {
-    if (hours === 1) return `منذ ساعة`;
-    if (hours === 2) return `منذ ساعتين`;
-    if (hours <= 10) return `منذ ${hours} ساعات`;
-    return `منذ ${hours} ساعة`;
-  }
-
-  if (days < 7) {
-    if (days === 1) return `منذ يوم`;
-    if (days === 2) return `منذ يومين`;
-    return `منذ ${days} أيام`;
-  }
-
-  if (weeks < 5) { // up to 4 weeks
-    if (weeks === 1) return `منذ أسبوع`;
-    if (weeks === 2) return `منذ أسبوعين`;
-    return `منذ ${weeks} أسابيع`;
-  }
-  
-  if (months < 12) {
-    if (months === 1) return `منذ شهر`;
-    if (months === 2) return `منذ شهرين`;
-    return `منذ ${months} أشهر`;
-  }
-
-  if (years === 1) return `منذ سنة`;
-  if (years === 2) return `منذ سنتين`;
-  return `منذ ${years} سنوات`;
+type PostCardProps = {
+  post: Post;
+  setView: (view: View) => void;
 };
 
-interface PostCardProps {
-  post: Post;
-  currentUser: User;
-  comments: Comment[];
-  onLike: (postId: number) => void;
-  onAddComment: (postId: number, text: string) => void;
-  onShare: (postId: number) => void;
-  onSave: (post: Post) => void;
-  onViewProfile: (user: User) => void;
-  onEdit: (post: Post) => void;
-  onDelete: (postId: number) => void;
-}
-
-const PostCard: React.FC<PostCardProps> = ({ post, currentUser, comments, onLike, onAddComment, onShare, onSave, onViewProfile, onEdit, onDelete }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, setView }) => {
+  const { user: currentUser } = useAuth();
+  const [isLiked, setIsLiked] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const isAuthor = post.author.uid === currentUser.uid;
+  const [newComment, setNewComment] = useState('');
 
-  const handleAddCommentWrapper = (text: string) => {
-    onAddComment(post.id, text);
+  useEffect(() => {
+    if (currentUser) {
+      setIsLiked(post.likes.some(like => like.user_id === currentUser.id));
+    }
+  }, [post.likes, currentUser]);
+
+  const postUser = post.profiles;
+
+  if (!postUser) {
+    return null; // Or a loading skeleton
+  }
+
+  const handleLike = async () => {
+    if (!currentUser) return;
+
+    const currentlyLiked = post.likes.some(like => like.user_id === currentUser.id);
+    
+    if (currentlyLiked) {
+      // Unlike
+      await supabase
+        .from('likes')
+        .delete()
+        .match({ user_id: currentUser.id, post_id: post.id });
+    } else {
+      // Like
+      await supabase
+        .from('likes')
+        .insert({ user_id: currentUser.id, post_id: post.id });
+    }
   };
   
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [menuRef]);
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newComment.trim() === '' || !currentUser) return;
+
+    const { error } = await supabase
+        .from('comments')
+        .insert({
+            text: newComment,
+            user_id: currentUser.id,
+            post_id: post.id,
+        });
+
+    if (!error) {
+        setNewComment('');
+    } else {
+        console.error("Error adding comment: ", error);
+    }
+  };
+
+  const timeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return `منذ ${Math.floor(interval)} سنوات`;
+    interval = seconds / 2592000;
+    if (interval > 1) return `منذ ${Math.floor(interval)} أشهر`;
+    interval = seconds / 86400;
+    if (interval > 1) return `منذ ${Math.floor(interval)} أيام`;
+    interval = seconds / 3600;
+    if (interval > 1) return `منذ ${Math.floor(interval)} ساعات`;
+    interval = seconds / 60;
+    if (interval > 1) return `منذ ${Math.floor(interval)} دقائق`;
+    return 'الآن';
+  }
+
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={() => onViewProfile(post.author)} className="flex items-center space-x-4 rtl:space-x-reverse group">
-          <img src={post.author.avatarUrl} alt={post.author.name} className="w-12 h-12 rounded-full" />
+    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200">
+      <div className="p-4 flex justify-between items-center">
+        <button onClick={() => setView({ page: 'profile', userId: postUser.id })} className="flex items-center gap-3 cursor-pointer">
+          <img className="w-10 h-10 rounded-full" src={postUser.avatar_url} alt={postUser.username} />
           <div>
-            <p className="font-bold text-slate-800 group-hover:underline">{post.author.name}</p>
-            <p className="text-sm text-slate-500">{formatRelativeTime(post.timestamp)}</p>
+            <p className="font-bold">{postUser.username}</p>
+            <p className="text-xs text-slate-500">{timeAgo(post.created_at)}</p>
           </div>
         </button>
-        {isAuthor && (
-            <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1 rounded-full hover:bg-slate-100 text-slate-500">
-                    <EllipsisVerticalIcon className="w-5 h-5" />
-                </button>
-                {menuOpen && (
-                    <div className="absolute left-0 rtl:left-auto rtl:right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-10 border border-slate-100 animate-fade-in-up origin-top-left rtl:origin-top-right">
-                        <button onClick={() => { onEdit(post); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
-                           <PencilIcon className="w-4 h-4 text-slate-500"/> <span>تعديل</span>
-                        </button>
-                        <button onClick={() => { onDelete(post.id); setMenuOpen(false); }} className="w-full text-right flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                           <TrashIcon className="w-4 h-4"/> <span>حذف</span>
-                        </button>
-                    </div>
-                )}
-            </div>
+        <button className="text-slate-500 hover:text-slate-800">
+          <OptionsIcon className="w-6 h-6" />
+        </button>
+      </div>
+      
+      {post.image_url && <img className="w-full h-auto" src={post.image_url} alt="Post content" />}
+      {post.video_url && (
+        <video className="w-full h-auto bg-black" controls>
+          <source src={post.video_url} type="video/mp4" />
+          متصفحك لا يدعم عرض مقاطع الفيديو.
+        </video>
+      )}
+
+      <div className="p-4">
+        <div className="flex items-center gap-4 mb-2">
+          <button onClick={handleLike} className="flex items-center gap-2 text-slate-600 hover:text-red-500 transition-colors">
+            <HeartIcon className={`w-7 h-7 ${isLiked ? 'fill-current text-red-500' : ''}`} />
+          </button>
+          <button onClick={() => setShowComments(!showComments)} className="flex items-center gap-2 text-slate-600 hover:text-indigo-500 transition-colors">
+            <CommentIcon className="w-7 h-7" />
+          </button>
+          <button className="flex items-center gap-2 text-slate-600 hover:text-indigo-500 transition-colors">
+            <ShareIcon className="w-7 h-7" />
+          </button>
+        </div>
+        <p className="font-semibold mb-2">{post.likes.length.toLocaleString()} إعجاب</p>
+        <p className="whitespace-pre-wrap">
+          <span className="font-bold">{postUser.username}</span> {post.caption}
+        </p>
+        
+        {post.comments && post.comments.length > 0 && (
+           <button onClick={() => setShowComments(!showComments)} className="text-sm text-slate-500 mt-2">
+             عرض كل الـ {post.comments.length} تعليقات
+           </button>
         )}
       </div>
-      <p className="text-slate-700 whitespace-pre-wrap mb-4">{post.text}</p>
-      
-      {post.imageUrl && (
-        <div className="my-4 max-h-[600px] rounded-lg bg-black flex justify-center items-center">
-          <img src={post.imageUrl} alt="محتوى المنشور" className="max-w-full max-h-[600px] object-contain" />
-        </div>
-      )}
 
-      {post.videoUrl && (
-        <div className="my-4 bg-black rounded-lg">
-           <video src={post.videoUrl} controls className="w-full max-h-[600px] rounded-lg" />
-        </div>
-      )}
-
-      <div className="flex justify-between items-center text-sm text-slate-500 py-2 border-y border-slate-200">
-        <span>{post.likes} إعجاب</span>
-        <span>{post.comments} تعليقات</span>
-        <span>{post.shares} مشاركات</span>
+      <div className="border-t border-slate-200 p-4">
+         <form onSubmit={handleAddComment} className="flex gap-2">
+           <input
+             type="text"
+             value={newComment}
+             onChange={(e) => setNewComment(e.target.value)}
+             placeholder="أضف تعليقاً..."
+             className="w-full bg-slate-100 border-none rounded-full px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+           />
+           <button type="submit" className="text-indigo-600 font-semibold hover:text-indigo-800 disabled:opacity-50" disabled={!newComment.trim()}>نشر</button>
+         </form>
       </div>
       
-      <div className="flex justify-around pt-1">
-        <button 
-          onClick={() => onLike(post.id)}
-          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
-        >
-          <HeartIcon className={`w-6 h-6 transition-colors ${post.isLiked ? 'text-red-500 fill-current' : 'group-hover:text-red-500'}`} />
-          <span className={`font-semibold transition-colors ${post.isLiked ? 'text-red-500' : 'group-hover:text-red-500'}`}>إعجاب</span>
-        </button>
-        <button 
-          onClick={() => setShowComments(!showComments)}
-          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
-        >
-          <CommentIcon className="w-6 h-6 transition-colors group-hover:text-indigo-500" />
-          <span className="font-semibold transition-colors group-hover:text-indigo-500">تعليق</span>
-        </button>
-        <button 
-          onClick={() => onShare(post.id)}
-          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
-        >
-          <ShareIcon className="w-6 h-6 transition-colors group-hover:text-green-500" />
-          <span className="font-semibold transition-colors group-hover:text-green-500">مشاركة</span>
-        </button>
-        <button 
-          onClick={() => onSave(post)}
-          className="flex-1 flex justify-center items-center space-x-2 rtl:space-x-reverse p-2 rounded-md transition-colors text-slate-600 hover:bg-slate-100 group"
-        >
-          <BookmarkIcon className={`w-6 h-6 transition-colors ${post.isSaved ? 'text-blue-500 fill-current' : 'group-hover:text-blue-500'}`} />
-          <span className={`font-semibold transition-colors ${post.isSaved ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>حفظ</span>
-        </button>
-      </div>
-
-      {showComments && (
-        <CommentSection 
-          comments={comments} 
-          onAddComment={handleAddCommentWrapper}
-          currentUser={currentUser} 
-        />
-      )}
+      {showComments && <CommentSection comments={post.comments} onClose={() => setShowComments(false)} />}
     </div>
   );
 };
