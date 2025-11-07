@@ -20,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setView, currentView, signOut, curren
   return (
     <aside className="fixed top-0 right-0 h-full w-64 bg-white border-l border-slate-200 p-6 shadow-sm transform translate-x-0 transition-transform duration-300 z-20 hidden md:block flex flex-col">
       <div className="text-2xl font-bold text-indigo-600 mb-10">
-        تطبيقنا
+        meydan
       </div>
       <nav className="flex-1">
         <ul>
