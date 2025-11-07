@@ -3,7 +3,7 @@ import { supabase } from '../contexts/services/supabaseService';
 import { uploadFile } from '../contexts/services/storageService';
 import { useAuth } from '../contexts/AuthContext';
 import { generateSteps } from '../contexts/services/geminiService';
-import { SparklesIcon } from './Icons';
+import { SparklesIcon, PhotoIcon } from './Icons';
 
 type CreatePostProps = {
   onClose: () => void;
@@ -23,12 +23,42 @@ const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Drag and Drop state
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFile = (selectedFile: File) => {
+    if (selectedFile && (selectedFile.type.startsWith('image/') || selectedFile.type.startsWith('video/'))) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+      setError(null);
+    } else {
+      setError("نوع الملف غير مدعوم. الرجاء اختيار صورة أو فيديو.");
+      setFile(null);
+      setPreview(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-      setPreview(URL.createObjectURL(selectedFile));
+      processFile(e.target.files[0]);
     }
   };
 
@@ -99,7 +129,12 @@ const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
         </div>
         <div className="p-4">
           <div className="flex flex-col md:flex-row gap-4 max-h-[70vh]">
-            <div className="w-full md:w-1/2 flex items-center justify-center bg-slate-100 rounded-lg aspect-square">
+            <div 
+                className={`w-full md:w-1/2 flex items-center justify-center bg-slate-100 rounded-lg aspect-square transition-all duration-300 ${isDragging ? 'border-2 border-dashed border-indigo-500 bg-indigo-50' : 'border-2 border-dashed border-transparent'}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
               {preview ? (
                 file?.type.startsWith('video/') ? (
                   <video src={preview} controls className="max-h-full max-w-full rounded-lg" />
@@ -108,22 +143,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
                 )
               ) : (
                 <div className="text-center p-4">
-                   <label htmlFor="file-upload" className="cursor-pointer bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition">
+                   <PhotoIcon className="w-20 h-20 text-slate-300 mx-auto mb-4" />
+                   <p className="text-slate-600 mb-4 text-lg">اسحب الصور ومقاطع الفيديو هنا</p>
+                   <label htmlFor="file-upload" className="cursor-pointer bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition">
                       اختر من جهازك
                    </label>
                    <input id="file-upload" type="file" accept="image/*,video/*" onChange={handleFileChange} className="hidden" />
                 </div>
               )}
             </div>
-            <div className="w-full md:w-1/2">
+            <div className="w-full md:w-1/2 flex flex-col">
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="اكتب تعليقاً..."
-                className="w-full h-48 bg-slate-50 border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"
+                className="w-full h-48 flex-grow bg-slate-50 border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 outline-none transition resize-none"
                 required
               />
-               <button type="button" onClick={() => setMode('ai')} className="mt-2 flex items-center gap-2 text-sm text-indigo-600 font-semibold hover:text-indigo-800">
+               <button type="button" onClick={() => setMode('ai')} className="mt-2 flex items-center gap-2 text-sm text-indigo-600 font-semibold hover:text-indigo-800 self-start">
                 <SparklesIcon className="w-5 h-5" />
                 إنشاء بالذكاء الاصطناعي
               </button>
@@ -160,8 +197,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated }) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-11/12 max-w-lg" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
          {mode === 'upload' ? renderUploadMode() : renderAiMode()}
          {error && <p className="text-red-500 text-sm p-4 pt-0">{error}</p>}
       </div>
